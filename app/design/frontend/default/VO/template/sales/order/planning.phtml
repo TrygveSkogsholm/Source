@@ -1,0 +1,136 @@
+<style>
+
+.progress-graph-etape
+{
+	background:transparent url(<?php echo $this->getSkinUrl('images/planning/progress_graph_fond.gif') ?>);
+	text-align: center;
+	vertical-align:middle;
+}
+
+.progress-graph-libelle-etape
+{
+	text-align: center;
+	font:12px verdana;
+	font-weight:bold;
+	color: #B40F0F;
+}
+
+.progress-graph-date-livraison
+{
+	text-align: center;
+	font:12px verdana;
+	font-weight:bold;
+	color: #B40F0F;
+	vertical-align:middle;
+}
+
+.progress-graph-current
+{
+	text-align: center;
+	vertical-align:middle;
+}
+
+.bloc-etape
+{
+	width: 59px;
+	height: 55px;
+	background:transparent url(<?php echo $this->getSkinUrl('images/planning/progress_graph_etape.gif') ?>);
+	text-align: center;
+	vertical-align:middle;
+	display: block;
+	margin: auto;
+}
+
+.progress-graph-percent
+{
+	padding-top: 20px;
+	text-align: center;
+	vertical-align:middle;
+	font:14px verdana;
+	font-weight:bold;
+	height: 50px;
+}
+
+.progress-graph-date
+{
+	padding-top: 7px;
+	padding-left: 3px;
+	padding-right: 3px;
+	text-align: center;
+	vertical-align:middle;
+	font:12px verdana;
+	font-weight:bold;
+	height: 50px;
+}
+
+</style>
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr height="55">
+	<td class="progress-graph-etape" align="center">
+		<div class="bloc-etape">
+		<?php 
+			//Etape paiement
+			if ($this->IsConsidered())
+			{
+				echo '<img style="padding-top: 8px;" src="'.$this->getSkinUrl('images/planning/progress_graph_etape_ok.gif').'" >';
+			}
+			else 
+			{
+				echo '<img style="padding-top: 8px;" src="'.$this->getSkinUrl('images/planning/progress_graph_etape_nok.gif').'">';
+			}
+		?>
+		</div>
+	</td>
+	<td class="progress-graph-etape" align="center">
+		<div class="bloc-etape">
+		<?php 
+			if ($this->allProductsAreReserved())
+				echo '<img style="padding-top: 8px;" src="'.$this->getSkinUrl('images/planning/progress_graph_etape_ok.gif').'">';
+		?>
+		</div>
+	</td>
+	<td class="progress-graph-etape" align="center">
+		<div class="bloc-etape">
+		<?php 
+			if ($this->isPrepared())
+				echo '<img style="padding-top: 8px;" src="'.$this->getSkinUrl('images/planning/progress_graph_etape_ok.gif').'">';
+
+		?>
+		</div>
+	</td>
+	<td class="progress-graph-etape" align="center">
+		<div class="bloc-etape">
+		<?php 
+			if ($this->isShipped())
+				echo '<img style="padding-top: 8px;" src="'.$this->getSkinUrl('images/planning/progress_graph_etape_ok.gif').'">';
+		?>
+		</div>
+	</td>
+	<td width="35">
+		<img src="<?php echo $this->getSkinUrl('images/planning/progress_graph_fleche.gif') ?>" width="35" height="55">
+	</td>
+	<td rowspan="2" class="progress-graph-date-livraison" align="center">
+			<?php echo $this->__('Delivery<br>planed to'); ?><br><?php echo $this->formatDate($this->getEstimatedDeliveryDate(), 'medium'); ?><br>&nbsp;
+	</td>
+</tr>
+<tr>
+	<td class="progress-graph-libelle-etape" align="center">
+		<?php echo $this->__('Validated'); ?>
+	</td>
+	<td class="progress-graph-libelle-etape" align="center">
+		<?php echo $this->__('Product<br>Supply'); ?>
+	</td>
+	<td class="progress-graph-libelle-etape" align="center">
+		<?php echo $this->__('Assembly /<br>Preparation'); ?>
+	</td>
+	<td class="progress-graph-libelle-etape" align="center">
+		<?php echo $this->__('Shipping'); ?>
+	</td>
+	<td>
+		&nbsp;
+	</td>
+</tr>
+</table>
+
+<p>&nbsp;</p>

@@ -1,0 +1,35 @@
+<div class="content-header" style="visibility: visible;">
+    <h3 class="icon-head head-shipments">Orders</h3>
+</div>
+<style type="text/css">
+.order {margin:6px; padding:6px; font-size:2.5em; cursor:pointer;}
+.highlight {background-color:#FFDCB9;}
+}
+</style>
+<script type="text/javascript">
+function localhighlight(id)
+{
+	$(id).addClassName('highlight');
+}
+function localdehighlight(id)
+{
+	$(id).removeClassName('highlight');
+}
+function updateSelector()
+{
+	var value = $('supplier-selector').getValue();
+	$('supplier_id').setValue(value);
+	$('selector').hide();
+	saveAndContinueEdit();
+}
+</script>
+<?php
+foreach ($this->_purchaseOrders as $purchaseOrder)
+{
+	echo '<div class="order" id="'.$purchaseOrder->getId().'_id" onmouseover="localhighlight(\''.$purchaseOrder->getId().'_id\')"  onmouseout="localdehighlight(\''.$purchaseOrder->getId().'_id\')" onclick="window.open(\''.$this->getUrl('*/*/itemSelect',array('id'=>$purchaseOrder->getId(),'shipment'=>$this->_shipment->getId())).'\', \'window\',\'width=800,height=300\')" ># '.$purchaseOrder->getId();
+	echo '</div></br>';
+}
+?>
+<button id="add_order_button" type="button" class="scalable add" onclick="window.open('<?php echo $this->getUrl('*/*/orderSelect',array('shipment'=>$this->_shipment->getId())); ?>', 'orderSelect','width=380,height=400')" style="">
+<span>Add Items</span>
+</button>

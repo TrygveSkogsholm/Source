@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+	<purchase_order_index>
+		<reference name="content">
+			<block type="purchase/orders" name="ordersgrid" />
+		</reference>
+	</purchase_order_index>
+	
+	<purchase_hts_index>
+		<reference name="content">
+			<block type="purchase/hts" name="htsgrid" />
+		</reference>
+	</purchase_hts_index>
+
+	<purchase_shipment_index>
+		<reference name="content">
+			<block type="purchase/shipments" name="shipmentgrid" />
+		</reference>
+	</purchase_shipment_index>
+
+	<purchase_shipment_itemselect>
+		<reference name="root">
+			<block type="purchase/shipments_itemselect" name="shipment_order_items" />
+		</reference>
+	</purchase_shipment_itemselect>
+
+	<purchase_order_test>
+		<reference name="content">
+			<block type="purchase/test" name="test" template="purchase/test.phtml" />
+		</reference>
+	</purchase_order_test>
+
+	<purchase_supply_index>
+		<!-- Not even being called, it's outside the tree thanks to google api not working with it :( -->
+		<reference name="head">
+			<action method="addJs"><script>jQuery/jquery-1.7.js</script></action>
+			<action method="addJs"><script>jQuery/jquery.table2CSV.js</script></action>
+			<action method="addJs"><script>jQuery/flot/jquery.flot.js</script></action>
+			<action method="addJs"><script>vo/purchase/supplyneeds/analysis.js</script></action>
+			<action method="addCss"><stylesheet>jsTree.css</stylesheet></action> 
+		</reference>
+		<reference name="content">
+			<block type="purchase/supplyneeds_graph" name="supplysneeds" template="purchase/supplyneeds/graph.phtml"/>
+		</reference>
+	</purchase_supply_index>
+
+	<purchase_supplier_index>
+		<reference name="content">
+			<block type="purchase/suppliers" name="suppliersgrid" />
+		</reference>
+	</purchase_supplier_index>
+	
+	<purchase_price_index>
+		<reference name="content">
+			<block type="purchase/prices" name="pricesgrid" />
+		</reference>
+	</purchase_price_index>
+
+	<purchase_price_load>
+		<reference name="content">
+			<block type="purchase/prices_load" name="new_price_load" template="purchase/price/choose.phtml"/>
+			<block type="purchase/prices_plan_grid" after="new_price_load" name="new_price_grid" />
+		</reference>
+		        <update handle="editor"/>
+	</purchase_price_load>
+	
+	<purchase_price_new>
+		<reference name="content">
+			<block type="purchase/prices_new" name="new_price_change" template="purchase/price/new.phtml"/>
+		</reference>
+	</purchase_price_new>
+	
+	<purchase_price_graph>
+		<reference name="content">
+			<block type="purchase/prices_graph" name="price_graph" template="purchase/price/graph.phtml"/>
+		</reference>
+	</purchase_price_graph>
+	
+	<purchase_price_list>
+		<reference name="content">
+			<block type="purchase/prices_list" name="price_list"/>
+		</reference>
+	</purchase_price_list>
+	
+	<purchase_stock_index>
+		<reference name="content">
+			<block type="purchase/stockmovements" name="stockmovement" />
+		</reference>
+	</purchase_stock_index>
+</layout>

@@ -1,0 +1,36 @@
+<?php 
+	$showImages = true; 
+	if ($this->location == 'pending')
+	{
+		$value = $this->item->getItemQty() - $this->item->getQtyInShipments();
+	}
+	elseif ($this->location == 'shipment')
+	{
+		$value = $this->item->getItemQty();
+	}
+?>
+
+<li class="ship-item ui-corner-all item-<?php echo $this->item->getId(); ?>" >
+	<div class="item-handle ui-corner-top">
+			<?php echo $this->item->getSku(); ?>
+	</div>
+	<div class="left">
+		<div class="ship-name">
+			<?php //echo $this->item->getName(); ?>
+		</div> 
+		<input name="qty" class="ui-corner-bl" value="<?php echo $value; ?>" />
+	</div>
+	<?php if ($showImages): ?>
+	<div class="right">
+		<?php
+			$product = $this->item->getMagentoProduct();
+			$width=60;
+			$height=50;
+		?>
+		<img
+			src="<?php echo $this->helper('catalog/image')->init($product, 'small_image')->backgroundColor(array(0,0,0))->resize($width, $height); ?>"
+			width="<?php echo $width; ?>" height="<?php echo $height; ?>"
+			class="ship-image ui-corner-br" />
+	</div>
+	<?php endif;?>
+</li>

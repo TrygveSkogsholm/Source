@@ -1,0 +1,13 @@
+<h2>Please choose a supplier</h2>
+
+<form action="<?php echo $this->getUrl('*/*/create'); ?>" style="text-align: center;"">
+<select name="supplier_id">
+<?php
+foreach ($this->getSuppliers() as $supplier)
+{
+	echo '<option value="'.$supplier->getId().'">'.$supplier->getName().'</option>';
+}
+?>
+</select>
+<button type="submit" class="scalable save">Continue</button>
+</form>

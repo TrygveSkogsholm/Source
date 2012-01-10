@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+	<default>
+		<reference name="footer_links">
+			<action method="addLink" translate="label title" module="catalogsearch">
+				<label>Add a New Store</label>
+				<url helper="dealers/getNewDealerUrl" />
+				<title>Become a Dealer</title>
+			</action>
+		</reference>
+		
+		<reference name="footer_links">
+			<action method="addLink" translate="label title" module="dealers">
+				<label>Find Other Dealers</label>
+				<url helper="dealers/displayDealerUrl" />
+				<title>Find Dealers</title>
+			</action>
+		</reference>
+	</default>
+	<customer_account>
+		<!-- Mage_Sales -->
+		<reference name="customer_account_navigation">
+			<action method="addLink" translate="label" module="dealers">
+				<name>dealer_control</name>
+				<path>dealers/index/control/</path>
+				<label>My Stores</label>
+			</action>
+		</reference>
+	</customer_account>
+
+	<dealers_index_control>
+		<label>My Stores</label>
+		<!-- Mage_Wishlist -->
+		<update handle="customer_account" />
+		<reference name="my.account.wrapper">
+			<block type="dealers/control_dealers" name="dealers.control.dealers"
+				template="dealers/control.phtml" />
+			<block type="customer/account_dashboard" name="customer.account.link.back"
+				template="customer/account/link/back.phtml" />
+		</reference>
+	</dealers_index_control>
+
+	<dealers_index_new translate="label">
+		<label>Become a Dealer</label>
+		<!-- Mage_Catalogsearch -->
+		<reference name="root">
+			<action method="setTemplate">
+				<template>page/1column.phtml</template>
+			</action>
+		</reference>
+		<reference name="content">
+			<block type="dealers/new" name="new_dealer_form" template="dealers/new.phtml" />
+		</reference>
+	</dealers_index_new>
+	
+	<dealers_index_display translate="label">
+		<label>Find Dealers</label>
+		<!-- Mage_Catalogsearch -->
+		<reference name="root">
+			<action method="setTemplate">
+				<template>page/1column.phtml</template>
+			</action>
+		</reference>
+		<reference name="content">
+			<block type="dealers/dealers" name="dealer_locator" template="dealers/dealers.phtml" />
+		</reference>
+	</dealers_index_display>
+	
+	<dealers_index_edithours translate="label">
+		<reference name="root">
+			<action method="setTemplate">
+				<template>page/empty.phtml</template>
+			</action>
+		</reference>
+		<reference name="content">
+			<block type="dealers/editHours" name="editHours" template="dealers/editHours.phtml" />
+		</reference>
+	</dealers_index_edithours>
+</layout> 

@@ -1,0 +1,44 @@
+<?php
+	if ($this->getProduct()->getTypeId() == 'simple')
+	{
+?>
+	<?php echo $this->__('Availability : ').$this->getStockAvailability(); ?>
+	<?php		
+		
+		if (!$this->isInStock())
+		{
+			if ($this->getSupplyDate() != null)
+				echo '<br>'.$this->__('Supply planed on ').$this->getSupplyDate();
+			else 
+			{
+				echo '<br>'.$this->getAvailabilityMessage();
+			}
+		}
+	?>
+<?php
+	}
+	
+	
+	if ($this->getProduct()->getTypeId() == 'configurable')
+	{
+?>
+	<div id="div_availability" style="display: none;">
+	<div id="span_product_availability"><?php echo $this->getStockAvailability(); ?></div>
+	<div id="span_product_availability_additional_information">
+		<?php		
+			
+			if (!$this->isInStock())
+			{
+				if ($this->getSupplyDate() != null)
+					echo '<br>'.$this->__('Supply planed on ').$this->getSupplyDate();
+				else 
+				{
+					echo '<br>'.$this->getAvailabilityMessage();
+				}
+			}
+		?>
+	</div>
+	</div>
+<?php
+	}
+?>

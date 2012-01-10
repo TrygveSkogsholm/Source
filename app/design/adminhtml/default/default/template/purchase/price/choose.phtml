@@ -1,0 +1,79 @@
+<script
+	src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js"
+	type="text/javascript"></script>
+<script
+	type="text/javascript"
+	src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link
+	type="text/css" rel="Stylesheet"
+	href="http://ajax.microsoft.com/ajax/jquery.ui/1.8.5/themes/ui-darkness/jquery-ui.css" />
+<script type="text/javascript">
+jQuery.noConflict()
+
+jQuery(document).ready(function(){
+	jQuery("input#autocomplete").autocomplete({
+	    source: <?php echo $this->getAutocompleteOptions(); ?>,
+	   	delay: 400,
+	   	minLength: 2,
+	   	select: function(event, ui) {
+		   	event.preventDefault();
+		   	jQuery('#autocomplete').val(ui.item.label);
+		   	jQuery('#autocomplete_val').val(ui.item.value);
+		   	jQuery('input[name="type"]:nth(1)').attr('checked', true);
+		   	}
+	});
+
+	jQuery("#category-select").change(function()
+			{
+				jQuery('input[name="type"]:nth(0)').attr('checked', true);
+			}
+	);
+
+	jQuery("#dump").change(function()
+			{
+				jQuery('input[name="type"]:nth(2)').attr('checked', true);
+			}
+	);
+});
+</script>
+<style>
+	form td , th
+	{
+		padding:5px;
+		text-align:center;
+	}
+	form button
+	{
+		float:right;
+	}
+</style>
+
+<form action="<?php echo $this->getUrl('*/*/loadPrices'); ?>">
+<div>
+<table>
+	<tr>
+		<th><input type="radio" name="type" value="category" checked="checked" /> Load Category</th>
+		<th><input type="radio" name="type" value="single" /> Load Single Product</th>
+		<th><input type="radio" name="type" value="dump" /> Load By Sku List</th>
+	</tr>
+	<tr>
+		<td>
+		<!-- Category -->
+			<select id="category-select" name="category" >
+				<?php echo $this->getCategoryOptions(); ?>
+			</select>
+		</td>
+		<td>
+			<!-- Sku or Name -->
+			<input id="autocomplete" name="label" style="width:300px;"/>
+			<input id="autocomplete_val" type="hidden" name="value" />
+		</td>
+		<td>
+			<textarea class="textarea" cols="15" rows="2" style="height:50px;" name="dump" id="dump"></textarea>
+		</td>
+	</tr>
+</table>
+<button type="submit">Open</button>
+<br/>
+</div>
+</form>

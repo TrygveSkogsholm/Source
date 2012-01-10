@@ -1,0 +1,21 @@
+<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link type="text/css" rel="Stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/themes/UI-Lightness/jquery-ui.css" />
+<h4>Select Which Purchase Order To Ship Items From</h4>
+<?php
+foreach ($this->_shipment->getValidOrders() as $order)
+{
+	$model = Mage::getModel('purchase/order')->load($order);
+	echo '<div onclick="select(\''.$this->getUrl('*/*/itemSelect',array('id'=>$order,'shipment'=>$this->_shipment->getId())).'\',\''.$order.'\')">#'.$order.', Sent: '.date_format(date_create($model->getDateSent()),'l, F d').'</div>';
+	$model = NULL;
+}
+?>
+<script type="text/javascript">
+$('div').button();
+
+function select(url,order)
+{
+	window.open(url,'_self','width=800,height=300,scrollbars=yes');
+	//self.close();
+}
+</script>

@@ -1,0 +1,127 @@
+<style type="text/css">
+.transparent-back
+{
+    color: #D85909;
+    background-color:black;
+    font-size: 1.1em;
+    font-weight: bold;
+    opacity: 0.6;
+    position: absolute;
+    text-align: center;
+    z-index: 500;
+}
+
+.prompt
+{
+    background: none repeat scroll 0 0 #FFF4E9;
+    border: 2px solid #F1AF73;
+    color: #D85909;
+    opacity: 0.9;
+    font-weight: bold;
+    left: 50%;
+    margin-left: -60px;
+    padding: 15px 60px;
+    position: fixed;
+    text-align: center;
+    top: 45%;
+    width: 300px;
+    z-index: 1000;
+</style>
+<?php if ($this->_shipment->getSupplier()->getName() == NULL): ?>
+<div id="selector">
+<div id="select-supplier-prompt" style=" left: -2px; top:0px; width: 1423px; height: 849px;" class="transparent-back">
+</div>
+<div class="prompt">
+<button style="" onclick="setLocation('<?php echo $this->getUrl('*/*/'); ?>')" class="scalable back" type="button" id="never-mind"><span>Back</span></button>
+<select onchange="updateSelector()" id="supplier-selector">
+<option value="null">Please Select a Supplier </option>
+<?php
+foreach (Mage::getModel('purchase/supplier')->getCollection() as $supplier)
+{
+	echo '<option value="'.$supplier->getId().'">'.$supplier->getName().'</option>';
+}
+?>
+</select>
+</div>
+</div>
+<?php endif;?>
+
+<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link type="text/css" rel="Stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/themes/UI-Darkness/jquery-ui.css" />
+<script type="text/javascript">
+  $.noConflict();
+  // Code that uses other library's $ can follow here.
+</script>
+
+<?php
+//echo $this->_shipment->getSupplier()->getShippingDelay();
+//echo Mage::helper('purchase')->calculateNewTime($shipDate,'days',$this->_shipment->getSupplier()->getShippingDelay());
+//echo strtotime(now());
+
+		//exit;?>
+
+<div id="ship" style="display:none">
+	<div id="ship-prompt" style=" left: -2px; top:0px; width: 1423px; height: 849px;" class="transparent-back">
+	</div>
+	<div class="prompt">
+		<form action="<?php echo $this->getUrl('*/*/ship')?>" >
+			<table>
+				<tr>
+					<td>
+						<label for="date_shipped">Ship Date</label>
+					</td>
+					<td>
+						<label for="edoa-picker">Estimated Arrival</label>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input id="date_shipped" name="date-shipped" value="<?php echo now(); ?>"/>
+					</td>
+					<td>
+						<input id="edoa-picker" name="estimated" value="<?php echo $this->_shipment->getDefaultEdoa(now()); ?>"/>
+					</td>
+				</tr>
+			</table>
+			<input type="hidden" name="id" value="<?php echo $this->_shipment->getId(); ?>" />
+			<div id="cancelship">Back</div>
+			<button id="shipbutton" type="submit">Ship</button>
+		</form>
+	</div>
+</div>
+
+<div id="receive" style="display:none">
+<div id="receive-prompt" style=" left: -2px; top:0px; width: 1423px; height: 849px;" class="transparent-back">
+</div>
+<div class="prompt">
+	<form action="<?php echo $this->getUrl('*/*/receive')?>" >
+	<label for="date_received">Arrival Date</label>
+	<input id="date_received" name="date-received" value="<?php echo now(); ?>"/>
+	<input type="hidden" name="id" value="<?php echo $this->_shipment->getId(); ?>" />
+	<br/>
+	<br/>
+	<div id="cancelreceive">Back</div>
+	<button id="receivebutton" type="submit">Receive</button>
+
+	</form>
+</div>
+</div>
+
+<script type="text/javascript">
+jQuery('#date_shipped').datepicker({ dateFormat: 'yy-mm-dd' });
+jQuery('#edoa-picker').datepicker({ dateFormat: 'yy-mm-dd' });
+jQuery('#date_received').datepicker({ dateFormat: 'yy-mm-dd' });
+
+jQuery('#shipbutton').button();
+jQuery('#cancelship').button();
+jQuery('#cancelship').click(function () {
+    $('ship').hide();
+});
+
+jQuery('#receivebutton').button();
+jQuery('#cancelreceive').button();
+jQuery('#cancelreceive').click(function () {
+    $('receive').hide();
+});
+</script>

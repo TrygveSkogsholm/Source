@@ -1,0 +1,2388 @@
+<?php
+/*
+ * This is going to be a large complicated file. It will contain four disticnt levels of function.
+ *
+ * 1. Primarily it will display and edit prices. This will be done through jQuery. The calculations and such
+ * will be local. php will echo the JSON required.
+ *
+ * 2. It will also be required to use two types of ajax functions, one to populate predictions; the other to update a
+ * price itself.
+ *
+ * 3. It will validate and update the inputs of the user.
+ *
+ * 4. Finally it will be able to save (not ajax) the whole thing as a plan.
+ *
+ * When saving the program will updating the JSON in real time along with any elements, that way the JSON
+ * can be passed back to be saved with ease. A great amount of information will be displayed on this page
+ * so there will be many tricks to display the prope thing at the proper time, see comments in file.
+ *
+ * Since this will be done mostly by jQuery the css class names and DOM are quite important for
+ * organization. The overall structure will be a table where each row is a price change.
+ * The values in each table will be identified with class name. Each price type will have a uppercase
+ * prefix followed by a dash then the field. Observe:
+ * DC-new = New distributor cost
+ * DC-current = Old distributor cost
+ * DC-lc = margin above LC
+ *
+ * The other prefixes are WC, RC, and OEM
+ *
+ * The others are merely one class, LC = landed cost, FC = first cost.
+ *
+ * For simplicity the JSON field names will coorespond to the class names exactly.
+ *
+ * There are two modes to this tool, predict and absolute. Absolute mode loads the landed cost from product
+ * additional (current). It does not allow manipulation of landed cost or therefore any variables it is derived
+ * from. Everything else works pretty much the same. Predict mode is a bit more complicated. It allows real time
+ * manipulation of both landed cost and those variables it is derived from. The important variables for landed
+ * cost are the freight % (a percentage to add to first cost), duty (was in JSON), and base cost. Base cost is first
+ * cost + additional costs. Additional costs exist only in shipments so we don't have to worry about that in predict
+ * mode. In the absolute mode however they should be noted in the info if the plan is generated from a shipment.
+ *
+ * Predict mode also... predicts new prices where as absolute mode starts entirely with existing information predict
+ * mode will start with the margins populated from a default as opposed to calculated from the data.
+ *
+ * The first cost can be gotten through ajax provided a list of supplier IDs chooseable from JSON.
+ */
+?>
+
+<style type="text/css">
+#prices {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 10px;
+}
+
+#prices input {
+	font-size: 1.2em;
+	border-radius: 3px 3px 3px 3px;
+}
+
+#prices td {
+	text-align: center;
+	margin: 0.3%;
+}
+
+#prices th {
+	text-align: center;
+}
+
+#prices th input {
+	width: 30px;
+}
+
+.price-row .cell {
+	border-bottom: 1px solid grey;
+	padding-top: 4px;
+}
+
+.cell table tbody tr {
+	background: none !important;
+}
+
+.FC {
+	width: 50px;
+	height: 30px;
+}
+
+.freight {
+	width: 35px;
+	height: 30px;
+}
+
+.LC {
+	width: 50px;
+	height: 30px;
+}
+
+/*
+For price blocks:
+*/
+.price-block-td {
+	width: 90px;
+	height: 30px;
+	padding-right: 10px;
+	padding-left: 10px;
+	border-right: 1px solid #202020;
+	border-left: 1px solid #202020;
+}
+
+.newPrice {
+	width: 95px;
+	height: 15px;
+}
+
+.oldPrice {
+	width: 45px;
+	height: 15px;
+	padding: 2px;
+}
+
+.landedMargin {
+	width: 45px;
+	height: 15px;
+}
+
+.margin {
+	width: 88px;
+	height: 30px;
+}
+
+.margin input {
+	width: 52px;
+	margin-left: 10px;
+}
+
+.margin button {
+	width: 31px;
+	margin-top: 2px;
+}
+
+#prices tr.even {
+	background-color: #181818;
+}
+
+.landed-column-header {
+	margin-top: 5px;
+}
+
+.locked {
+	color: #B0B0B0 !important;
+	background: none !important;
+	border: 0px !important;
+}
+
+.no-calc {
+	background: rgb(0, 0, 20) url('') no-repeat right top !important;
+}
+
+#prices .active {
+	background: rgb(0, 35, 0) url('') no-repeat right top !important;
+}
+
+.no-calc input {
+	color: #B0B0B0 !important;
+	background: none !important;
+	border: 0px !important;
+}
+
+#rounding span {
+	height: 18px;
+}
+
+#rounding label {
+	color: inherit;
+}
+
+.tools {
+	width: 30px;
+}
+
+.tools button {
+	display: block;
+}
+
+.critical {
+	background: rgb(255, 0, 0) url('') no-repeat right top !important;
+}
+
+th {
+	border-right: 1px solid #202020;
+	border-left: 1px solid #202020;
+}
+
+.columnName span {
+	float: right;
+}
+
+.sort-head {
+	cursor: pointer;
+}
+
+.sort-head div span {
+	display: none;
+}
+
+.sort-head .dbl {
+	display: inline !important;
+}
+
+.headerSortDown {
+	border: 2px solid grey;
+	background: black;
+}
+
+.headerSortUp {
+	border: 2px solid grey;
+	background: black;
+}
+
+.headerSortDown .srtdown {
+	display: inline !important;
+}
+
+.headerSortUp .srtup {
+	display: inline !important;
+}
+
+.headerSortDown .dbl {
+	display: none !important;
+}
+
+.headerSortUp .dbl {
+	display: none !important;
+}
+
+#related-buttons {
+	margin-right: 50px;
+	float: right;
+}
+
+#explaination {
+	width: 400px;
+	height: 60px;
+}
+
+#special {
+	float: right;
+}
+
+.relation-parent {
+	
+}
+
+.relation-child {
+	padding-left: 25px;
+	font-style: italic;
+}
+
+.relation-child input {
+	margin: 3px;
+}
+
+.relation-parent input {
+	margin: 3px;
+}
+</style>
+
+<script
+	src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js"
+	type="text/javascript"></script>
+<script
+	type="text/javascript"
+	src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link
+	type="text/css" rel="Stylesheet"
+	href="http://ajax.microsoft.com/ajax/jquery.ui/1.8.5/themes/ui-darkness/jquery-ui.css" />
+<?php echo '<script type="text/javascript"src="'.$this->getJsUrl('jquery.tablesorter.js').'"></script>'; ?>
+<script type="text/javascript">
+  jQuery.noConflict();
+  // Code that uses other library's $ can follow here.
+</script>
+
+<script type="text/javascript">
+/*
+ * The following are all the JS functions used on this page.
+ */
+var Pricing = <?php echo $this->getPricingJSON() ?>;
+//var  = JSON.parse(JsonString);
+var Settings = new Object();
+var cancel = false;
+var rowOverIndex;
+
+function initialize()
+{
+	setupHeaders();
+	Settings.validation = false;
+	Settings.relationMode = 'ask';
+	for (i = 0; i < Pricing.data.length; i++)
+	{
+		this.addPrice(Pricing.data[i], i);
+	}
+	//Setup global locks
+	Settings.locks = [];
+	//Initial Formatting:result.data.children[i]
+	jQuery('input').addClass(' ui-widget-content');
+	jQuery('#anchor-content').addClass('ui-widget-content');
+	//jQuery('#prices .price-row:even').addClass('zebraStripes'); 
+	//jQuery buttons:
+	//Toggle column visibility:
+	jQuery('.column-toggle').each(function (index)
+	{
+		jQuery(this).click(function ()
+		{
+			toggleColumnVisibility(jQuery(this));
+		}).attr('checked', true);
+	});
+	jQuery('#toolbar #toggles').buttonset();
+	//Mode selector:
+	jQuery('#standard').change(function ()
+	{
+		selectStandardMode();
+	});
+	jQuery('#predict').change(function ()
+	{
+		selectPredictMode();
+	});
+	jQuery('#mode-buttons').buttonset();
+	//Round controls:
+	jQuery('#round-all').button().click(function (index)
+	{
+		roundAll();
+	});
+	jQuery('#rounding').button(
+	{
+		disabled: true
+	});
+	jQuery('#reset-all').button().click(function (index)
+	{
+		resetAll();
+	});
+	jQuery('#universal-buttons').buttonset();
+	jQuery('.newPrice').keydown(function (event)
+	{
+		if (event.keyCode == '82')
+		{
+			event.preventDefault();
+			roundPrice(jQuery(this));
+		}
+		else if (event.keyCode == '79')
+		{
+			event.preventDefault();
+			resetField(jQuery(this).parents('.price-row:first').attr('id'), jQuery(this).attr('class').split(' ')[0]);
+		}
+	});
+	
+	jQuery(document).keydown(function(event)
+			{
+				if (event.keyCode == '76')
+				{
+					event.preventDefault();
+					lockRow(rowOverIndex);
+				}
+				else if (event.keyCode == '85')
+				{
+					event.preventDefault();
+					unlockRow(rowOverIndex);
+				}
+			});
+
+	jQuery('.price-row').mouseover(function()
+			{
+				rowOverIndex = jQuery(this).attr('id');
+			});
+	
+
+	//Select all on click
+	jQuery("#prices input").focus(function ()
+	{
+		// Select input field contents
+		jQuery(this).select();
+	});
+	jQuery('#warning-dialog').dialog(
+	{
+		autoOpen: false
+	});
+	jQuery('#related-buttons').buttonset();
+	jQuery('#ask').click(function ()
+	{
+		Settings.relationMode = 'ask';
+	})
+	jQuery('#all').click(function ()
+	{
+		Settings.relationMode = 'all';
+	})
+	jQuery('#none').click(function ()
+	{
+		Settings.relationMode = 'none';
+	})
+	
+	//Load Explanation
+	if ('explanation' in Pricing)
+	{
+		jQuery('#explaination').val(Pricing.explanation);
+	}
+	
+	//Initial Updates and modes
+	selectStandardMode();
+	jQuery('#prices').tablesorter(
+	{
+		textExtraction: myTextExtraction,
+		selectorHeaders: 'thead th.sort-head',
+		widgets: ['zebra'],
+		headers: {
+			12: {
+				sorter: false
+			}
+		}
+	});
+}
+var myTextExtraction = function (node)
+	{
+		// extract data from markup and return it  
+		node = jQuery(node);
+		if (node.is('.tools') == false)
+		{
+			if (node.is('.name , .SKU') == false)
+			{
+				//document.write('class:'+node.find('input:first').attr('class')+' -> '+node.find('input:first').val()+'<br/>');
+				return (node.find('input:first').val()).toString();
+			}
+			else
+			{
+				//document.write(node.text());
+				return (node.text()).toString();
+			}
+		}
+		else
+		{
+			//document.write(0);
+			return '';
+		}
+	}
+
+function setupHeaders()
+{
+/*
+				<div id="OEM" class="price-headtools">
+				<button id="lock-OEM-new" class="lock-price"></button>
+				<button id="round-OEM-new" class="round-price"></button>
+				<button id="reset-OEM-new" class="reset-price"></button>
+				</div>
+				<button id="Save-All" >Save All</button>
+				<button id="Apply-All">Apply All</button>
+	*/
+	//General buttonizing
+	jQuery('#Save-All').button().click(
+
+	function ()
+	{
+		saveAll();
+	});
+	jQuery('#Apply-All').button().click(
+
+	function ()
+	{
+		applyAll();
+	});
+	jQuery('.price-headtools').buttonset();
+	jQuery('.lock-price').each(
+
+	function ()
+	{
+		jQuery(this).button('option', {
+			text: false,
+			icons: {
+				primary: 'ui-icon-unlocked'
+			}
+		}).click(
+
+		function ()
+		{
+			var field = jQuery(this).parents('.price-headtools').attr('id') + '-new';
+			toggleLock(field);
+		});
+	});
+	jQuery('.round-price').each(
+
+	function ()
+	{
+		jQuery(this).button('option', {
+			text: false,
+			icons: {
+				primary: 'ui-icon-wrench'
+			}
+		}).click(
+
+		function ()
+		{
+			var field = jQuery(this).parents('.price-headtools').attr('id') + '-new';
+			jQuery('.' + field).each(
+
+			function ()
+			{
+				roundPrice(jQuery(this));
+			});
+		});
+	});
+	jQuery('.reset-price').each(
+
+	function ()
+	{
+		jQuery(this).button('option', {
+			text: false,
+			icons: {
+				primary: 'ui-icon-home'
+			}
+		}).click(
+
+		function ()
+		{
+			var field = jQuery(this).parents('.price-headtools').attr('id') + '-new';
+			resetColumn(field);
+		});
+	});
+	jQuery('.project-left').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				primary: "ui-icon-arrowthickstop-1-w"
+			}
+		});
+	});
+	jQuery('.project-right').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				secondary: "ui-icon-arrowthickstop-1-e"
+			}
+		});
+	});
+	jQuery('.refresh').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				primary: "ui-icon-refresh"
+			}
+		});
+	});
+	jQuery('.lock-column').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				primary: "ui-icon-unlocked"
+			}
+		});
+	});
+	jQuery('.set-column-margin').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				primary: "ui-icon-copy"
+			}
+		});
+	});
+	jQuery('.set-landed-margin').each(function (index)
+	{
+		jQuery(this).button(
+		{
+			text: false,
+			icons: {
+				primary: "ui-icon-calculator"
+			}
+		});
+	});
+	jQuery('#prices th div').each(function (index)
+	{
+		jQuery(this).buttonset();
+	});
+	//Setup triggers:
+	jQuery('#set-oem-lc').click(function ()
+	{
+		setColumnMargin('OEM-lc');
+		projectColumnCost('OEM-lc', true);
+	});
+	jQuery('#set-oem-dc').click(function ()
+	{
+		setColumnMargin('OEM-DC');
+	});
+	jQuery('#lock-OEM-DC').click(function ()
+	{
+		toggleLock('OEM-DC');
+	});
+	jQuery('#project-dc-oem').click(function ()
+	{
+		projectColumnCost('OEM-DC', false);
+	});
+	jQuery('#project-oem-dc').click(function ()
+	{
+		projectColumnCost('OEM-DC', true);
+	});
+	jQuery('#set-dc-lc').click(function ()
+	{
+		setColumnMargin('DC-lc');
+		projectColumnCost('DC-lc', true);
+	});
+	jQuery('#set-dc-wc').click(function ()
+	{
+		setColumnMargin('DC-WC');
+	});
+	jQuery('#lock-DC-WC').click(function ()
+	{
+		toggleLock('DC-WC');
+	});
+	jQuery('#project-wc-dc').click(function ()
+	{
+		projectColumnCost('DC-WC', false);
+	});
+	jQuery('#project-dc-wc').click(function ()
+	{
+		projectColumnCost('DC-WC', true);
+	});
+	jQuery('#set-wc-lc').click(function ()
+	{
+		setColumnMargin('WC-lc');
+		projectColumnCost('WC-lc', true);
+	});
+	jQuery('#set-wc-rc').click(function ()
+	{
+		setColumnMargin('WC-RC');
+	});
+	jQuery('#lock-WC-RC').click(function ()
+	{
+		toggleLock('WC-RC');
+	});
+	jQuery('#project-rc-wc').click(function ()
+	{
+		projectColumnCost('WC-RC', false);
+	});
+	jQuery('#project-wc-rc').click(function ()
+	{
+		projectColumnCost('WC-RC', true);
+	});
+	jQuery('#set-rc-lc').click(function ()
+	{
+		setColumnMargin('RC-lc');
+		projectColumnCost('RC-lc', true);
+	});
+	jQuery('.refresh').click(function ()
+	{
+		refreshAll();
+	});
+}
+
+function selectStandardMode()
+{
+	Settings.validation = false;
+	unlockAll();
+	lock('FC');
+	lock('freight');
+	lock('LC');
+	jQuery('#col3').click().button('refresh');
+	hideColumn('FC');
+	jQuery('#col4').click().button('refresh');
+	hideColumn('freight');
+	for (i = 0; i < Pricing.data.length; i++)
+	{
+		initialResetField(i, 'DC-new');
+		initialResetField(i, 'OEM-new');
+		initialResetField(i, 'WC-new');
+		initialResetField(i, 'RC-new');
+		initialResetField(i, 'LC');
+		initialResetField(i, 'FC');
+	}
+	Settings.mode = 'standard';
+	Settings.validation = true;
+	validateAll();
+}
+
+function selectPredictMode()
+{
+	Settings.validation = false;
+	unlockAll();
+	setColumnMargin('RC-lc');
+	projectColumnCost('RC-lc', false);
+	setColumnMargin('WC-RC');
+	projectColumnCost('WC-RC', false);
+	setColumnMargin('DC-WC');
+	projectColumnCost('DC-WC', false);
+	setColumnMargin('OEM-lc');
+	projectColumnCost('OEM-lc', true);
+	Settings.mode = 'predict';
+	Settings.landedCostMode = 'percentage';
+	Settings.validation = true;
+	validateAll();
+}
+
+function unlockAll()
+{
+	unlock('FC');
+	unlock('freight');
+	unlock('LC');
+	unlock('OEM-new');
+	unlock('OEM-DC');
+	unlock('DC-new');
+	unlock('DC-WC');
+	unlock('WC-new');
+	unlock('WC-RC');
+	unlock('RC-new');
+}
+
+function unlock(field)
+{
+	var input = jQuery('.' + field);
+	input.parents('.cell').removeClass('no-calc');
+	input.each(function (index)
+	{
+		if (jQuery(this).parents('.price-row').hasClass('no-calc') == false)
+		{
+			jQuery(this).removeAttr('disabled');
+		}
+	});
+	Settings.locks[field] = false;
+	jQuery('#lock-' + field).button("option", "icons", {
+		primary: "ui-icon-unlocked"
+	});
+}
+
+function lock(field)
+{
+	Settings.locks[field] = true;
+	jQuery('.' + field).each(function (index)
+	{
+		jQuery(this).attr('disabled', 'disabled')
+	}).parents('.cell').addClass('no-calc');
+	jQuery('#lock-' + field).button("option", "icons", {
+		primary: "ui-icon-locked"
+	});
+}
+
+function toggleLock(field)
+{
+	if (Settings.locks[field] == false)
+	{
+		lock(field);
+	}
+	else
+	{
+		unlock(field);
+	}
+}
+
+function resetField(index, field)
+{
+	var oldVal = Pricing.data[index][field.replace('new', 'old')];
+	if (oldVal != null)
+	{
+		updateValue(index, field, jQuery('#' + index + ' .' + field), oldVal);
+	}
+	else
+	{
+		if (jQuery('#' + index).hasClass('no-calc') == false && Settings.locks[field] == false)
+		{
+			Pricing.data[index][field] = null;
+			jQuery('#' + index + ' .' + field).val(null);
+		}
+	}
+}
+
+function initialResetField(index, field)
+{
+	var loadVal = Pricing.data[index][field];
+	if (loadVal != null)
+	{
+		updateValue(index, field, jQuery('#' + index + ' .' + field), loadVal);
+	}
+	else
+	{
+		resetField(index, field);
+	}
+}
+
+function resetColumn(field)
+{
+	for (i = 0; i < Pricing.data.length; i++)
+	{
+		resetField(i, field);
+	}
+}
+
+function resetRow(index)
+{
+	resetField(index, 'DC-new');
+	resetField(index, 'OEM-new');
+	resetField(index, 'WC-new');
+	resetField(index, 'RC-new');
+	resetField(index, 'LC');
+	resetField(index, 'FC');
+}
+
+function resetAll()
+{
+	var progress = createProgressDialog('Resetting...', '');
+	var length = Pricing.data.length;
+	var increment = 100 / length;
+	var value = 0;
+	for (i = 0; i < length; i++)
+	{
+		if (cancel == false)
+		{
+			resetRow(i);
+			value += increment;
+			progress.progressbar(
+			{
+				value: value
+			});
+		}
+		else
+		{
+			cancel = false;
+			break;
+		}
+	}
+	closeProgressDialog();
+}
+
+function validateAll()
+{
+	for (i = 0; i < Pricing.data.length; i++)
+	{
+		validateRow(i);
+	}
+}
+
+function saveAll()
+{
+	var progress = createProgressDialog('Saving...', '');
+	var length = Pricing.data.length;
+	var increment = 100 / length;
+	var value = 0;
+	for (i = 0; i < length; i++)
+	{
+		changePrice(i, false, 0);
+		value += increment;
+		progress.progressbar(
+		{
+			value: value
+		});
+	}
+	closeProgressDialog();
+}
+
+var needToRefresh = false;
+function applyAll()
+{
+	if (Settings.relationMode == 'ask')
+	{
+		Settings.relationMode = 'none';
+		s = true;
+	}
+	var progress = createProgressDialog('Applying...', '');
+	var length = Pricing.data.length;
+	var increment = 100 / length;
+	var value = 0;
+	for (i = 0; i < length; i++)
+	{
+		changePrice(i, false, 1);
+		value += increment;
+		progress.progressbar(
+		{
+			value: value
+		});
+	}
+	closeProgressDialog();
+	if (needToRefresh == true)
+	{
+		url = "<?php echo $this->getUrl('*/price/new'); ?>";
+		window.location = (url + "?plan_id="+Pricing.plan_id);
+	}
+	
+	if (s == true)
+	{
+		Settings.relationMode = 'ask';
+	}
+}
+
+function setColumnMargin(whichOne)
+{
+/*
+	This function polulates all the margin inputs for a column with the column header values.
+	*/
+	switch (whichOne)
+	{
+	case 'RC-lc':
+		var margin = jQuery('#retail_above_lc').val();
+		jQuery('.RC-lc').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'WC-lc':
+		var margin = jQuery('#wholesale_above_lc').val();
+		jQuery('.WC-lc').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'DC-lc':
+		var margin = jQuery('#distributor_above_lc').val();
+		jQuery('.DC-lc').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'OEM-lc':
+		var margin = jQuery('#oem_above_lc').val();
+		jQuery('.OEM-lc').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'OEM-DC':
+		var margin = jQuery('#oem_below_distributor').val();
+		jQuery('.OEM-DC').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'DC-WC':
+		var margin = jQuery('#distributor_below_wholesale').val();
+		jQuery('.DC-WC').each(function (index)
+		{
+			jQuery(this).val(margin);
+		});
+		break;
+	case 'WC-RC':
+		var margin = jQuery('#wholesale_below_retail').val();
+		jQuery('.WC-RC').each(function (index)
+		{
+			if (jQuery('#'+index+' .RC-new').val() >= 100)
+			{
+				jQuery(this).val(margin-10);
+			}
+			else
+			{
+				jQuery(this).val(margin);
+			}	
+		});
+		break;
+	default:
+	}
+}
+
+function refreshAll()
+{
+	jQuery('.price-row').each(function (index)
+	{
+		rowIndex = jQuery(this).attr('id');
+		validateRow(rowIndex);
+	});
+}
+
+function roundAll()
+{
+	jQuery('.newPrice').each(function (i)
+	{
+		roundPrice(jQuery(this));
+	});
+}
+
+function projectColumnCost(whichOne, direction)
+{
+/*
+	This function projects all the costs for a column (like pressing the arrow for each one).
+	*/
+	jQuery('.price-row').each(function (index)
+	{
+		rowIndex = jQuery(this).attr('id');
+		projectCost(rowIndex, [whichOne, direction]);
+	});
+}
+
+function calculateLandedCost(index)
+{
+	if (Settings.mode == 'predict')
+	{
+		if (Settings.landedCostMode == 'percentage')
+		{
+			var landedCost = ((jQuery('#' + index + ' .FC').val()) * getLandedMarginCo(jQuery('#' + index + ' .freight').val()));
+		}
+		else
+		{}
+		return landedCost;
+	}
+	return;
+}
+
+function projectCost(index, margin)
+{
+/*
+	This is a very important function for this tools operation. It is meant to take a modified
+	margin, hold it and a certain value constant and recalculate the target.
+
+	Let's talk about the arguments. There are four dependent costs with three margins in between them, they all
+	also have a margin with the landed cost. That is 7 margins, there is another imporant variable, what is being
+	held constant in the change. Taking such direction into it there are (3*2)+4 = 10 possible algorithms
+
+	This function will be passed the css class name of a margin in index 0 of an array (margin)
+	using that class name it will decide if it needs
+	a direction or not (LC is always modifying the new). If it does need one it will look to the second index
+	([1]) of the array, which will contain a boolean TRUE FALSE indicated forward or backward.
+
+	Forward indicates that the cost before is constant while the one after is dependant. A switch statement
+	between the three margins will choose which one is being changed while an if else will choose the direction.
+
+	Like all row changing functions this will run an 'validate row' function after it's done to make sure displayed
+	information is accurate and trigger any warnings caused by the change.
+	*/
+	var tag = margin[0];
+	//Is landed margin?
+	var isLanded = false;
+	var coefficient = 0;
+	//Switch between margins
+	switch (tag)
+	{
+	case 'OEM-DC':
+		coefficient = getMarginCoefficient(jQuery('#' + index + ' .OEM-DC').val());
+		if (margin[1] == true)
+		{
+			var constant = jQuery('#' + index + ' .OEM-new').val();
+			var target = jQuery('#' + index + ' .DC-new');
+			var targetTag = 'DC-new';
+		}
+		else
+		{
+			var constant = jQuery('#' + index + ' .DC-new').val();
+			var target = jQuery('#' + index + ' .OEM-new');
+			var targetTag = 'OEM-new';
+		}
+		break;
+	case 'DC-WC':
+		coefficient = getMarginCoefficient(jQuery('#' + index + ' .DC-WC').val());
+		if (margin[1] == true)
+		{
+			var constant = jQuery('#' + index + ' .DC-new').val();
+			var target = jQuery('#' + index + ' .WC-new');
+			var targetTag = 'WC-new';
+		}
+		else
+		{
+			var constant = jQuery('#' + index + ' .WC-new').val();
+			var target = jQuery('#' + index + ' .DC-new');
+			var targetTag = 'DC-new';
+		}
+		break;
+	case 'WC-RC':
+		coefficient = getMarginCoefficient(jQuery('#' + index + ' .WC-RC').val());
+		if (margin[1] == true)
+		{
+			var constant = jQuery('#' + index + ' .WC-new').val();
+			var target = jQuery('#' + index + ' .RC-new');
+			var targetTag = 'RC-new';
+		}
+		else
+		{
+			var constant = jQuery('#' + index + ' .RC-new').val();
+			var target = jQuery('#' + index + ' .WC-new');
+			var targetTag = 'WC-new';
+		}
+		break;
+	default:
+		//landed cost
+		tag = tag.split('-', 2);
+		if (tag[1] == 'lc')
+		{
+			coefficient = getLandedMarginCo(parseFloat(jQuery('#' + index + ' .' + tag[0] + '-' + tag[1]).val()));
+			if (tag[0] != 'OEM')
+			{
+				var constant = parseFloat(jQuery('#' + index + ' .LC').val());
+			}
+			else
+			{
+				var constant = parseFloat(jQuery('#' + index + ' .FC').val());
+			}
+			var target = jQuery('#' + index + ' .' + tag[0] + '-new');
+			var targetTag = tag[0] + '-new';
+			var newValue = coefficient * constant;
+			updateValue(index, targetTag, target, parseFloat((newValue).toPrecision(8)));
+			return;
+		}
+	}
+	if (margin[1] == true)
+	{
+		var newValue = constant / coefficient;
+	}
+	else
+	{
+		var newValue = constant * coefficient;
+	}
+	//update
+	updateValue(index, targetTag, target, parseFloat((newValue).toPrecision(8)));
+}
+//Note target is a jQuery item, do not attempt to pass anything else. You can get at it
+//with this when setting the trigger. Leave value NULL to use user input value.
+
+function updateValue(index, tag, target, value)
+{
+	if (jQuery('#' + index).hasClass('no-calc') == false && Settings.locks[tag] == false)
+	{
+		if (value == 0)
+		{
+			value = null;
+		}
+		if (value == null || isNaN(value) == true)
+		{
+			value = parseFloat(target.val());
+		}
+		if (isNaN(value) == false)
+		{
+			//Update object
+			Pricing.data[index][tag] = value;
+			//Update the markup
+			target.val(value);
+			//Validate the row, this is a pretty costly function but is required to make sure incorrect data is not displayed.
+			validateRow(index);
+		}
+		else
+		{
+			Pricing.data[index][tag] = null;
+		}
+	}
+}
+var divergence = '<?php echo $this->getDivergence(); ?>';
+
+function validateRow(index)
+{
+	if (Settings.validation == true)
+	{
+		//Calculate margins and retreive values, all rules and dialog triggers should also exist here.
+		//Also known as refresh, this simply updates all dependent variables.
+		//Landed cost
+		var landedCost = Pricing.data[index].LC;
+		//OEM
+		var OEM = Pricing.data[index]['OEM-new'];
+		//OEM Landed margin - hijacked for FC
+		var OEMLandedMargin = getLandedMarginInteger(Pricing.data[index].FC, OEM);
+		//Distro
+		var DC = Pricing.data[index]['DC-new'];
+		//Distro Landed margin
+		var DCLandedMargin = getLandedMarginInteger(landedCost, DC);
+		//Wholesale
+		var WC = Pricing.data[index]['WC-new'];
+		//Wholesale landed margin
+		var WCLandedMargin = getLandedMarginInteger(landedCost, WC);
+		//Retail
+		var RC = Pricing.data[index]['RC-new'];
+		//Retail landed margin
+		var RCLandedMargin = getLandedMarginInteger(landedCost, RC);
+		//OEM vs Distro
+		var OEMDCMargin = getMarginInteger(OEM, DC);
+		//Distro vs wholesale
+		var DCWCMargin = getMarginInteger(DC, WC);
+		//Wholesale vs Retail
+		var WCRCMargin = getMarginInteger(WC, RC);
+		//Remove all existing warnings:
+		jQuery('#' + index + ' input').each(function ()
+		{
+			removeWarning(index, jQuery(this));
+		});
+		//Run through rules
+		//2. A margin should not have more than x% divergence from the overall.
+		if (Math.abs(OEMDCMargin - jQuery('#oem_below_distributor').val()) > divergence && OEMDCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .OEM-DC:first'), 2);
+		}
+		if (Math.abs(DCWCMargin - jQuery('#distributor_below_wholesale').val()) > divergence && DCWCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .DC-WC:first'), 2);
+		}
+		if (Math.abs(WCRCMargin - jQuery('#wholesale_below_retail').val()) > divergence && WCRCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .WC-RC:first'), 2);
+		}
+		//1. No margin should < 0 Critical
+		if (OEMDCMargin < 0 && OEMDCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .OEM-DC:first'), 1);
+		}
+		if (DCWCMargin < 0 && DCWCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .DC-WC:first'), 1);
+		}
+		if (WCRCMargin < 0 && WCRCMargin != 100)
+		{
+			warn(index, jQuery('#' + index + ' .WC-RC:first'), 1);
+		}
+		if (OEMLandedMargin < 0 && OEMLandedMargin != -100)
+		{
+			warn(index, jQuery('#' + index + ' .OEM-lc:first'), 1);
+		}
+		if (DCLandedMargin < 0 && DCLandedMargin != -100)
+		{
+			warn(index, jQuery('#' + index + ' .DC-lc:first'), 1);
+		}
+		if (WCLandedMargin < 0 && WCLandedMargin != -100)
+		{
+			warn(index, jQuery('#' + index + ' .WC-lc:first'), 1);
+		}
+		if (RCLandedMargin < 0 && RCLandedMargin != -100)
+		{
+			warn(index, jQuery('#' + index + ' .RC-lc:first'), 1);
+		}
+		//OEM
+		//OEM Landed Cost
+		//OEM vs Distro
+		//Distro
+		//Distro Landed Cost
+		//Distro vs wholesale
+		//Wholesale
+		//Wholesale landed margin
+		//Wholesale vs Retail
+		//Retail
+		//Retail landed margin
+		if (isFinite(OEMLandedMargin) == true)
+		{
+			jQuery('#' + index + ' .OEM-lc').val(parseFloat(OEMLandedMargin) + '%');
+		}
+		if (isFinite(DCLandedMargin) == true)
+		{
+			jQuery('#' + index + ' .DC-lc').val(parseFloat(DCLandedMargin) + '%');
+		}
+		if (isFinite(WCLandedMargin) == true)
+		{
+			jQuery('#' + index + ' .WC-lc').val(parseFloat(WCLandedMargin) + '%');
+		}
+		if (isFinite(RCLandedMargin) == true)
+		{
+			jQuery('#' + index + ' .RC-lc').val(parseFloat(RCLandedMargin) + '%');
+		}
+		if (isFinite(OEMDCMargin) == true && Settings.locks['OEM-DC'] == false)
+		{
+			jQuery('#' + index + ' .OEM-DC').val(parseFloat(OEMDCMargin));
+		}
+		if (isFinite(DCWCMargin) == true && Settings.locks['DC-WC'] == false)
+		{
+			jQuery('#' + index + ' .DC-WC').val(parseFloat(DCWCMargin));
+		}
+		if (isFinite(WCRCMargin) == true && Settings.locks['WC-RC'] == false)
+		{
+			jQuery('#' + index + ' .WC-RC').val(parseFloat(WCRCMargin));
+		}
+	}
+}
+
+function warn(index, field, warning)
+{
+	if (warning == 2)
+	{
+		field.removeClass('critical');
+		field.addClass('ui-state-error');
+		//field.effect('highlight', {}, 1000);
+	}
+	else
+	{
+		field.removeClass('ui-state-error');
+		field.addClass('critical');
+		///field.effect('pulsate', {}, 1000);
+	}
+	var tag = field.attr('class').split(' ')[0];
+	if ('warning' in Pricing.data[index])
+	{
+		Pricing.data[index].warning[tag] = warning;
+	}
+	else
+	{
+		Pricing.data[index].warning = new Object();
+		Pricing.data[index].warning[tag] = warning;
+	}
+	field.unbind('mouseenter mouseleave');
+	field.hover(
+
+	function ()
+	{
+		showWarningDialog(index, field, tag, warning);
+	}, function ()
+	{
+		hideWarningDialog();
+	});
+}
+var dialogTimeout;
+
+function showWarningDialog(index, field, tag, warning)
+{
+	if (warning == 1)
+	{
+		var title = "Negative Margin";
+		var tagInfo = parseTag(tag, false);
+		var html = "<p>This <b>" + tagInfo.name + "</b> for " + Pricing.data[index].name + " (" + Pricing.data[index].SKU + ") is negative.<p/>";
+		var underPriced = 0;
+		var overPriced = 0;
+		var difference = 0;
+		switch (tagInfo.type)
+		{
+		case 'tier':
+			html += "<p> This indicates that the <b>" + tagInfo.last.name + "</b> is overpriced compared to the <b>" + tagInfo.next.name + "</b>:</p>";
+			html += Pricing.data[index][tagInfo.next.tag + '-new'] + " - " + Pricing.data[index][tagInfo.last.tag + '-new'] + " = " + parseFloat((Pricing.data[index][tagInfo.next.tag + '-new'] - Pricing.data[index][tagInfo.last.tag + '-new']).toFixed(2));
+			break;
+		case 'landed':
+			html += "<p> This indicates that the <b>" + tagInfo.next + "</b> is underpriced compared to it's <b>landed cost</b>:</p>";
+			html += Pricing.data[index][tagInfo.tag + '-new'] + " - " + Pricing.data[index].LC + " = " + parseFloat((Pricing.data[index][tagInfo.tag + '-new'] - Pricing.data[index].LC).toFixed(2));
+			break;
+		default:
+		}
+	}
+	else
+	{
+		var title = "Unusual Margin";
+		var tagInfo = parseTag(tag, false);
+		var html = "<p>This <b>" + tagInfo.name + "</b> for " + Pricing.data[index].name + " (" + Pricing.data[index].SKU + ") is more divergent from the column margin than the standard accepted of " + divergence + "%.<p/>";
+		//html +=  "<p>It is "+Math.abs(field.val - jQuery('#wholesale_below_retail').val());
+	}
+	var offset = field.offset();
+	var dialog = jQuery('#warning-dialog');
+	dialog.html(html);
+	dialog.dialog("option", {
+		title: title,
+		position: [(offset.left - 310), (offset.top - jQuery('html').scrollTop())]
+	});
+	dialog.dialog("open");
+}
+
+function hideWarningDialog()
+{
+	jQuery('#warning-dialog').dialog("close");
+}
+
+function removeWarning(index, field)
+{
+	if (('warning' in Pricing.data[index]) == true)
+	{
+		delete Pricing.data[index].warning;
+	}
+	field.removeClass('ui-state-error');
+	field.removeClass('critical');
+	field.unbind('mouseenter mouseleave');
+}
+//object must be jQuery object
+
+function onInputChange(index, object)
+{
+	//This function is used specificaly for when a user changes an input field.
+	//It constructs the update request as well as validating the data (most should be numbers)
+/*
+	Primary indicates that the input field cooresponds to a field in the Pricing object. If it is primary an
+	update should be called because primary fields are independant and must update the dependant margins.
+
+	IMPORTANT! Do not mark a field as primary if the validate function can modify it, this will cause an infinite
+	loop.
+	*/
+	var tag = object.attr('class').split(' ')[0];
+	var primary = false;
+	switch (tag)
+	{
+	case 'WC-new':
+		primary = true;
+		break;
+	case 'WC-lc':
+		projectCost(index, ['WC-lc']);
+		break;
+	case 'RC-new':
+		primary = true;
+		break;
+	case 'RC-lc':
+		projectCost(index, ['RC-lc']);
+		break;
+	case 'OEM-DC':
+		break;
+	case 'DC-WC':
+		break;
+	case 'WC-RC':
+		break;
+	case 'FC':
+		primary = true;
+		updateValue(index, 'LC', jQuery('#' + index + ' .LC'), calculateLandedCost(index));
+		break;
+	case 'freight':
+		updateValue(index, 'LC', jQuery('#' + index + ' .LC'), calculateLandedCost(index));
+		break;
+	case 'LC':
+		primary = true;
+		break;
+	case 'OEM-new':
+		primary = true;
+		break;
+	case 'OEM-lc':
+		projectCost(index, ['OEM-lc']);
+		break;
+	case 'DC-new':
+		primary = true;
+		break;
+	case 'DC-lc':
+		projectCost(index, ['DC-lc']);
+		break;
+	default:
+	}
+	if (primary == true)
+	{
+		updateValue(index, tag, object, null);
+	}
+}
+//Update functions:
+
+function getLandedCostMargin(price, prefix)
+{
+	//Calculate margin off price object
+	margin = (price[prefix + '-new'] / price.LC) - 1;
+	return margin;
+}
+
+function lockRow(index)
+{
+	//This function sets the class 'no-calc' to exclude the row from the universal column functions
+	var row = jQuery('#' + index);
+	if (row.hasClass('no-calc') == true && row.hasClass('active') == false)
+	{
+		row.removeClass('no-calc');
+		jQuery('#' + index + ' input').each(
+
+		function (i)
+		{
+			jQuery(this).removeAttr('disabled');
+		});
+	}
+	else
+	{
+		row.addClass('no-calc');
+		jQuery('#' + index + ' input').each(
+
+		function (i)
+		{
+			jQuery(this).attr('disabled', 'disabled');
+		});
+	}
+}
+
+function unlockRow(index)
+{
+	//This function sets the class 'no-calc' to exclude the row from the universal column functions
+	jQuery('#' + index).removeClass('no-calc');
+}
+
+function getFirstCost(price,index)
+{
+	if (price.FC != null)
+	{
+		return price.FC;
+	}
+	else if (price.suppliers.length == 1)
+	{
+		price.FC = price.suppliers[0].firstcost;
+		return price.suppliers[0].firstcost;
+	}
+	else
+	{
+		//chooser code
+	}
+}
+
+function addPrice(price, index)
+{
+	/*
+	Adds a price row in the table.
+
+	It assembles the DOM object first, then it appends it to the table.
+	*/
+	var row = jQuery('<tr>').attr('id', index).addClass('price-row');
+	//Sku
+	row.append(jQuery('<td>').addClass('cell').append(price.SKU).addClass('SKU'));
+	//Name
+	row.append(jQuery('<td>').addClass('cell').append(price.name).addClass('name'));
+	//First Cost
+	row.append(jQuery('<td>').addClass('cell').append(jQuery('<input>').val(getFirstCost(price,index)).change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).addClass('FC')));
+	//Freight
+	row.append(jQuery('<td>').addClass('cell').append(jQuery('<input>').val( <?php echo $this->getDefaultFreightMargin(); ?> ).change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).addClass('freight')));
+	//Landed Cost
+	row.append(jQuery('<td>').addClass('cell').append(jQuery('<input>').val(price.LC).change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).addClass('LC')));
+	//OEM
+	OEM = jQuery('<td>').addClass('price-block-td cell').append(jQuery('<input>').addClass('OEM-new').addClass('newPrice').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).val(price['OEM-new'])).append(jQuery('<table>').append(jQuery('<tr>').append(jQuery('<td>').append(jQuery('<div>').addClass('OEM-old').append(formatFloatPrice(price['OEM-old'])).addClass('oldPrice'))).append(jQuery('<td>').append(jQuery('<input>').addClass('OEM-lc').addClass('landedMargin').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	})))));
+	row.append(OEM);
+	//OEM Distributor margin
+	row.append(jQuery('<td>').addClass('margin cell').append(jQuery('<div>').append(jQuery('<input>').addClass('OEM-DC').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	})).append('%').append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			primary: "ui-icon-arrowthick-1-w"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['OEM-DC', false]);
+	})).append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			secondary: "ui-icon-arrowthick-1-e"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['OEM-DC', true]);
+	})).buttonset()));
+	//Distributor
+	DC = jQuery('<td>').addClass('price-block-td cell').append(jQuery('<input>').addClass('DC-new').addClass('newPrice').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).val(price['DC-new'])).append(jQuery('<table>').append(jQuery('<tr>').append(jQuery('<td>').append(jQuery('<div>').addClass('DC-old').append(formatFloatPrice(price['DC-old'])).addClass('oldPrice'))).append(jQuery('<td>').append(jQuery('<input>').addClass('DC-lc').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).addClass('landedMargin')))));
+	row.append(DC);
+	//Distributor Wholesale margin
+	row.append(jQuery('<td>').addClass('margin cell').append(jQuery('<div>').append(jQuery('<input>').addClass('DC-WC').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	})).append('%').append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			primary: "ui-icon-arrowthick-1-w"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['DC-WC', false]);
+	})).append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			secondary: "ui-icon-arrowthick-1-e"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['DC-WC', true]);
+	})).buttonset()));
+	//Wholesale
+	WC = jQuery('<td>').addClass('price-block-td cell').append(jQuery('<input>').addClass('WC-new').addClass('newPrice').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).val(price['WC-new'])).append(jQuery('<table>').append(jQuery('<tr>').append(jQuery('<td>').append(jQuery('<div>').addClass('WC-old').append(formatFloatPrice(price['WC-old'])).addClass('oldPrice'))).append(jQuery('<td>').append(jQuery('<input>').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).addClass('WC-lc').addClass('landedMargin')))));
+	row.append(WC);
+	//Wholesale Retail margin
+	row.append(jQuery('<td>').addClass('margin cell').append(jQuery('<div>').append(jQuery('<input>').addClass('WC-RC').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	})).append('%').append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			primary: "ui-icon-arrowthick-1-w"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['WC-RC', false]);
+	})).append(jQuery('<button>').button(
+	{
+		//text: false,
+		icons: {
+			secondary: "ui-icon-arrowthick-1-e"
+		}
+	}).click(function ()
+	{
+		projectCost(index, ['WC-RC', true]);
+	})).buttonset()));
+	//Retail
+	RC = jQuery('<td>').addClass('price-block-td cell').append(jQuery('<input>').addClass('RC-new').addClass('newPrice').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	}).val(price['RC-new'])).append(jQuery('<table>').append(jQuery('<tr>').append(jQuery('<td>').append(jQuery('<div>').addClass('RC-old').append(formatFloatPrice(price['RC-old'])).addClass('oldPrice'))).append(jQuery('<td>').append(jQuery('<input>').addClass('RC-lc').addClass('landedMargin').change(function ()
+	{
+		onInputChange(index, jQuery(this));
+	})))));
+	row.append(RC);
+	//Save
+	row.append(
+	jQuery('<td>').addClass('cell tools')
+	//Save
+	.append(jQuery('<button>').button(
+	{
+		text: false,
+		icons: {
+			primary: 'ui-icon-disk'
+		}
+	}).click(
+
+	function ()
+	{
+		changePrice(index, true, null);
+	}))
+	//Reset
+	.append(jQuery('<button>').button(
+	{
+		text: false,
+		icons: {
+			primary: 'ui-icon-home'
+		}
+	}).click(
+
+	function ()
+	{
+		resetRow(index);
+	}))
+	//Remove
+	.append(jQuery('<button>').button(
+	{
+		text: false,
+		icons: {
+			primary: 'ui-icon-trash'
+		}
+	}).click(
+
+	function ()
+	{
+		removePrice(index);
+	})));
+	jQuery("#prices tbody:first").append(row);
+	//It is possible that the price is already active, if so lock it and add the special .active class
+	if (Pricing.data[index].active == true)
+	{
+		lockRow(index);
+		row.addClass('active');
+	}
+}
+
+function formatFloatPrice(price)
+{
+	price = returnFloatValue(price);
+	if (price == 0)
+	{
+		return '';
+	}
+	return '$' + price.toFixed(2);
+}
+
+function returnFloatValue(value)
+{
+	return Number(value);
+}
+
+function getMarginCoefficient(value)
+{
+	//Calculates the multiplier of a margin from it's int form (84 = 84% discount), always for the higher cost.
+	//i.e. ((1-margin)*cost) To get the higher from the lower divide by this coefficient.
+	return 1 - (value / 100);
+}
+
+function getMarginInteger(lower, higher)
+{
+	//This is the inverse fuction of get margin coefficient
+	//higher(1-(margin/100)) = lower therefore margin = 100(1 - lower/higher)
+	return (100 * (1 - (lower / higher))).toPrecision(5);
+}
+
+function getLandedMarginCo(value)
+{
+	//Calculates a coefficient to multiply landed cost by to get the desired cost, value is the markup margin
+	return (1 + (value / 100));
+}
+
+function getLandedMarginInteger(lower, higher)
+{
+	//This is similar to the getMarginInteger except it returns the coefficientmargin for lower not upper.
+	//higher = lower(1+(margin/100)) therefore ((higher/lower) - 1)100 = margin
+	return (100 * ((higher / lower) - 1)).toPrecision(3);
+}
+
+function hideColumn(whichOne)
+{
+	jQuery('.cell:has(.' + whichOne + '), .cell.' + whichOne).hide();
+	var mainHead = jQuery('#' + whichOne + '-head');
+	mainHead.hide();
+	jQuery('.sort-head').eq(mainHead.index()).hide();
+}
+
+function showColumn(whichOne)
+{
+	jQuery('.cell:has(.' + whichOne + '), .cell.' + whichOne).show();
+	var mainHead = jQuery('#' + whichOne + '-head');
+	mainHead.show();
+	jQuery('.sort-head').eq(mainHead.index()).show();
+}
+
+function toggleColumnVisibility(object)
+{
+	//object must be jQuery checkbox in markup
+	if (object.attr('checked') == false)
+	{
+		hideColumn(object.val());
+	}
+	else
+	{
+		showColumn(object.val());
+	}
+}
+
+function createProgressDialog(title, text)
+{
+	//Generate dialog
+	dialog = jQuery('<div>').attr('id', 'progress-dialog');
+	dialog.append(jQuery('<p>').append(text));
+	var progress = jQuery('<div>').attr('id', 'progress-div').progressbar();
+	dialog.append(progress);
+	dialog.dialog(
+	{
+		modal: true,
+		title: title,
+		width: 600,
+		height: 150,
+		resizable: false,
+	});
+	return progress;
+}
+
+function closeProgressDialog()
+{
+	jQuery('#progress-dialog').remove();
+}
+
+function changePrice(index, query, actual)
+{
+	//Settings:
+	var comment = '';
+	//Stuff is the response from the server
+	if (jQuery('#' + index).hasClass('no-calc') == false)
+	{
+		if (query == true)
+		{
+			//Generate dialog
+			dialog = jQuery('<div>');
+			dialog.append(jQuery('<p>').append('Click <b>save</b> to record the modifications to ' + Pricing.data[index].name + ' <sup>' + Pricing.data[index].SKU + '</sup> as a <i>planned change</i>, click <b>save & apply</b> to <i>actually modify</i> the magento product.')).append(jQuery('<p>').append('In both cases the <u>current price</u> as shown will be a snapshot of this moment and will not update with the magento product.'));
+			dialog.append(jQuery('<div>').append('Optionally, enter a comment specific to this change:')).append(jQuery('<textarea>').attr('id', 'row-comment').attr('style', 'width:100%;height:40px;').val(Pricing.data[index].comments));
+			dialog.dialog(
+			{
+				modal: false,
+				title: 'Are you sure?',
+				buttons: {
+					Save: function ()
+					{
+						report = sendSaveRequest(index, jQuery('#row-comment').val(), 0);
+						jQuery(this).dialog("close");
+						dialog.remove();
+					},
+					'Save & Apply': function ()
+					{
+						report = sendSaveRequest(index, jQuery('#row-comment').val(), 1);
+						jQuery(this).dialog("close");
+						dialog.remove();
+					},
+					Cancel: function ()
+					{
+						jQuery(this).dialog("close");
+						dialog.remove();
+					}
+				},
+				width: 500,
+				height: 285,
+				show: 'drop'
+			});
+		}
+		else
+		{
+			//Don't ask, it's a batch or something
+			report = sendSaveRequest(index, '', actual);
+		}
+	}
+}
+
+function sendSaveRequest(index, comment, actual)
+{
+	var report;
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXchangePrice'); ?>",
+		async: false,
+		data: {
+			'data': JSON.stringify(Pricing.data[index]),
+			'async': false,
+			'mode': Settings.mode,
+			'comment': comment,
+			'updater': "<?php echo Mage::getSingleton('admin/session')->getUser()->getName(); ?>",
+			'col-plan': Pricing.plan_id,
+			'explain': jQuery('#explaination').val(),
+			'actual': actual
+		},
+		success: function (data)
+		{
+			report = JSON.parse(data);
+			Pricing.plan_id = report.plan_id;
+			Pricing.data[index].id = report.id;
+			Pricing.data[index].plan_id = report.plan_id;
+			if (actual == 1)
+			{
+				jQuery('#' + index).addClass('active');
+				lockRow(index);
+			}
+			if (report.relational != false && Settings.relationMode != 'none')
+			{
+				//Generare parent child dialog, must occur even for a save all unless
+				//default not set.
+				jQuery.ajax(
+				{
+					url: "<?php echo $this->getUrl('*/*/AJAXrelationalInfo'); ?>",
+					data: {
+						'relation': report.relational,
+						'product_id': Pricing.data[index].prod_id
+					},
+					success: function (result)
+					{
+						relationalDialog(JSON.parse(result), index);
+					}
+				});
+			}
+		}
+	});
+	return report;
+}
+var htmlInfo;
+var alreadyApplied;
+var saveData = new Array();
+
+function relationalDialog(result, index)
+{
+	saveData = new Array();
+	if (Settings.relationMode == 'ask')
+	{
+		//Generate dialog
+		dialog = jQuery('<div>');
+		if (result.type == 'child')
+		{
+			dialog.append(jQuery('<p>').append('Please select whether the parent or certain siblings should receive an exact copy of the changes described.'));
+			for (i = 0; i < result.data.parents.length; i++)
+			{
+				var parent = jQuery('<div>').addClass('relation-parent');
+				parent.append('(' + result.data.parents[i].sku + ') ');
+				parent.append(result.data.parents[i].name);
+				parent.prepend(jQuery('<input>').attr('type', 'checkbox').attr('checked', 'checked').val(result.data.parents[i].id));
+				dialog.append(parent);
+				for (n = 0; n < result.data.parents[i].children.length; n++)
+				{
+					var child = jQuery('<div>').addClass('relation-child');
+					child.append(result.data.parents[i].children[n].sku + ' ');
+					child.prepend(jQuery('<input>').attr('type', 'checkbox').attr('checked', 'checked').val(result.data.parents[i].children[n].id));
+					dialog.append(child);
+				}
+				dialog.append('<br/>');
+			}
+		}
+		else if (result.type == 'parent')
+		{
+			dialog.append(jQuery('<p>').append('Please select which children this change should be applied to.'));
+			var parent = jQuery('<div>').addClass('relation-parent');
+			parent.append('(' + Pricing.data[index].SKU + ') ');
+			parent.append(Pricing.data[index].name);
+			dialog.append(parent);
+			for (i = 0; i < result.data.children.length; i++)
+			{
+				var child = jQuery('<div>').addClass('relation-child');
+				child.append(result.data.children[i].sku + ' ');
+				child.prepend(jQuery('<input>').attr('type', 'checkbox').attr('checked', 'checked').val(result.data.children[i].id));
+				dialog.append(child);
+			}
+			dialog.append('<br/>');
+		}
+		htmlInfo = true;
+	}
+	else if (Settings.relationMode == 'all')
+	{
+		//save data equals everything in result.
+		if ('children' in result.data)
+		{
+			for (i = 0; i < result.data.children.length; i++)
+			{
+				saveData.push(result.data.children[i].id);
+			}
+		}
+		if ('parents' in result.data)
+		{
+			for (n = 0; n < result.data.parents.length; n++)
+			{
+				saveData.push(result.data.parents[n].id);
+				for (q = 0; q < result.data.children.length; q++)
+				{
+					saveData.push(result.data.parents[n].children[q].id);
+				}
+			}
+		}
+		htmlInfo = false;
+		jQuery.ajax(
+		{
+			url: "<?php echo $this->getUrl('*/*/AJAXrelationalChange'); ?>",
+			data: {
+				'relation': report.relational,
+				'related': JSON.stringify(saveData),
+				'change': JSON.stringify(Pricing.data[index])
+			},
+			success: function (serverResponse)
+			{
+				serverResponse = JSON.parse(serverResponse);
+			}
+		});
+	}
+
+	if (htmlInfo == true)
+	{
+		dialog.dialog(
+		{
+			modal: false,
+			title: 'Related Changes',
+			buttons: {
+				'Ok': function ()
+				{
+					jQuery('.relation-child , .relation-parent').each(function ()
+					{
+						input = jQuery(this).children('input:first');
+						if (input.is(':checked') == true)
+						{
+							saveData.push(input.val());
+						}
+					});
+					jQuery.ajax(
+					{
+						url: "<?php echo $this->getUrl('*/*/AJAXrelationalChange'); ?>",
+						data: {
+							'relation': report.relational,
+							'related': JSON.stringify(saveData),
+							'change': JSON.stringify(Pricing.data[index])
+						},
+						success: function (serverResponse)
+						{
+							serverResponse = JSON.parse(serverResponse);
+						}
+					});
+					jQuery(this).dialog("close");
+					dialog.remove();
+				},
+				'Nothing Else': function ()
+				{
+					jQuery(this).dialog("close");
+					dialog.remove();
+				}
+			},
+			width: 400,
+			height: 400
+		});
+	};
+	//For check to make sure that all related items are considered chaged:
+	for (j = 0; j < Pricing.data.length; j++)
+	{
+		if (jQuery.inArray(Pricing.data[j].prod_id, saveData) != -1)
+		{
+			needToRefresh = true;
+			jQuery('#' + j).addClass('active');
+			lockRow(j);
+		}
+	}
+}
+
+function removePrice(index)
+{
+	//Generate dialog
+	dialog = jQuery('<div>');
+/*dialog.append(jQuery('<p>').append('Click <b>save</b> to record the modifications to '+Pricing.data[index].name+' <sup>'+Pricing.data[index].SKU+'</sup> as a <i>planned change</i>, click <b>save & apply</b> to <i>actually modify</i> the magento product.'))
+		  .append(jQuery('<p>').append('In both cases the <u>current price</u> as shown will be a snapshot of this moment and will not update with the magento product.'));*/
+	dialog.dialog(
+	{
+		modal: false,
+		title: 'Are you sure you want delete?',
+		buttons: {
+			Yes: function ()
+			{
+				if (Pricing.data[index].id != null)
+				{
+					jQuery.ajax(
+					{
+						url: "<?php echo $this->getUrl('*/*/AJAXremovePrice'); ?>",
+						data: {
+							'price_id': Pricing.data[index].id
+						}
+					});
+				}
+				delete Pricing.data[index];
+				jQuery('#' + index).remove();
+				jQuery(this).dialog("close");
+				dialog.remove();
+			},
+			No: function ()
+			{
+				jQuery(this).dialog("close");
+				dialog.remove();
+			}
+		},
+		show: 'fold'
+	});
+}
+//This function returns a single name for the field, as well as a 'forward' and 'backward'
+//objects indicating the next or last column.
+
+function parseTag(tag, upper)
+{
+	//Most tags contain a '-'
+	tag = tag.split('-');
+	if (tag.length == 2)
+	{
+		if (tag[1] == 'new')
+		{
+			//It's a main field.
+			info = getName(tag[0], upper);
+			return {
+				'name': info.name,
+				'next': info.next,
+				'last': info.last,
+				'type': 'normal'
+			};
+		}
+		else if (tag[1] == 'lc')
+		{
+			//It's a landed margin; should produce price name_ landed margin
+			info = getName(tag[0], upper);
+			newField = getName(tag[1], upper);
+			return {
+				'name': info.name + ' &larr; &rarr; ' + newField.name,
+				'tag': info.tag,
+				'next': info.name,
+				'last': info.last,
+				'type': 'landed'
+			};
+		}
+		else
+		{
+			//All that's left is one of the tier margins
+			var last = getName(tag[0], upper);
+			var next = getName(tag[1], upper);
+			var marginName = last.name + " &larr; &rarr; " + next.name + " Margin";
+			if (upper == false)
+			{
+				marginName = marginName.toLowerCase();
+			}
+			return {
+				'name': marginName,
+				'next': next,
+				'last': last,
+				'type': 'tier'
+			};
+		}
+	}
+	else
+	{
+		//got to be one of the simple ones FC or LC etc..
+		return getName(tag[0], upper);
+	}
+}
+
+function getName(tag, upper)
+{
+	var name = '';
+	var next = '';
+	var last = '';
+	switch (tag)
+	{
+	case 'RC':
+		name = "Retail Cost";
+		last = "Wholesale Cost";
+		break;
+	case 'WC':
+		name = "Wholesale Cost";
+		next = "Retail Cost";
+		last = "Distributor Cost";
+		break;
+	case 'DC':
+		name = "Distributor Cost";
+		next = "Wholesale Cost";
+		last = "Original Equipment Manufacturer Cost";
+		break;
+	case 'OEM':
+		name = "Original Equipment Manufacturer Cost";
+		next = "Distributor Cost";
+		break;
+	case 'lc':
+		name = "Landed Cost Margin";
+		break;
+	case 'LC':
+		name = 'Landed Cost';
+		break;
+	case 'FC':
+		name = 'First Cost';
+		break;
+	default:
+	}
+	if (upper == false)
+	{
+		name = name.toLowerCase();
+		last = last.toLowerCase();
+		next = next.toLowerCase();
+	}
+	return {
+		'name': name,
+		'tag': tag,
+		'last': last,
+		'next': next,
+		'type': 'simple'
+	};
+}
+
+function roundPrice(field)
+{
+	var roundingTo = Number(jQuery('#round-select').val());
+	var value = Number(field.val());
+	var roundedValue = (Math.round(value / roundingTo)) * roundingTo;
+	updateValue(field.parents('.price-row').attr('id'), field.attr('class').split(' ')[0], field, parseFloat(roundedValue.toFixed(2)))
+}
+jQuery(document).ready(function ()
+{
+	window.initialize();
+});
+</script>
+<!-- <button onClick="hideColumn('OEM-DC')">Hide OEM-DC</button>
+<button onClick="hideColumn('name')">Hide Name</button>
+<button
+	onClick="document.write(jQuery.data(jQuery('#0 .OEM-DC'),'real'));">Test
+Data</button>-->
+
+
+<div id="control">
+	<div id="header-info"></div>
+	<div id="explaination-special">
+		<textarea id="explaination"></textarea>
+		<div id="special">
+			<button id="Save-All">Save All</button>
+			<button id="Apply-All">Apply All</button>
+		</div>
+		<span id="related-buttons"> <input type="radio" id="ask"
+			name="relational" checked="checked" /><label for="ask">Ask</label> <input
+			type="radio" id="all" name="relational" /><label for="all">All</label>
+			<input type="radio" id="none" name="relational" /><label for="none">None</label>
+		</span>
+	</div>
+	<div id="toolbar">
+		<span id="mode-buttons"> <input type="radio" id="standard" name="mode"
+			checked="checked" /><label for="standard">Standard Mode</label> <input
+			type="radio" id="predict" name="mode" /><label for="predict">Predict
+				Mode</label> </span> <span id="toggles"> <input type="checkbox"
+			class="column-toggle" value="SKU" id="col1" /><label for="col1">Sku</label>
+			<input type="checkbox" class="column-toggle" value="name" id="col2" /><label
+			for="col2">Name</label> <input type="checkbox" class="column-toggle"
+			value="FC" id="col3" /><label for="col3">First Cost</label> <input
+			type="checkbox" class="column-toggle" value="freight" id="col4" /><label
+			for="col4">Freight</label> <input type="checkbox"
+			class="column-toggle" value="LC" id="col5" /><label for="col5">Landed
+				Cost</label> <input type="checkbox" class="column-toggle"
+			value="OEM-new" id="col6" /><label for="col6">OEM</label> <input
+			type="checkbox" class="column-toggle" value="OEM-DC" id="col7" /><label
+			for="col7">Margin</label> <input type="checkbox"
+			class="column-toggle" value="DC-new" id="col8" /><label for="col8">Distributor</label>
+			<input type="checkbox" class="column-toggle" value="DC-WC" id="col9" /><label
+			for="col9">Margin</label> <input type="checkbox"
+			class="column-toggle" value="WC-new" id="col10" /><label for="col10">Wholesale</label>
+			<input type="checkbox" class="column-toggle" value="WC-RC" id="col11" /><label
+			for="col11">Margin</label> <input type="checkbox"
+			class="column-toggle" value="RC-new" id="col12" /><label for="col12">Retail</label>
+		</span> <span id="universal-buttons"> <span id="rounding"> <label
+				for="round-select">Round to:</label> <select id="round-select">
+					<option value=".05">5&cent</option>
+					<option value=".1">10&cent</option>
+					<option value=".25">25&cent</option>
+					<option value="1">$1</option>
+					<option value="10">$10</option>
+			</select> </span>
+			<button id="round-all">Round All Prices</button>
+			<button id="reset-all">Reset All</button> </span>
+	</div>
+</div>
+<div id="progress-bar" style="width: 100%"></div>
+<table id="prices">
+	<thead>
+		<tr>
+			<th id="SKU-head"></th>
+			<th id="name-head"></th>
+			<th id="FC-head"></th>
+			<th id="freight-head"></th>
+			<th id="LC-head"></th>
+			<th id="OEM-new-head">
+				<div class="landed-column-header">
+					<button id="set-oem-lc" class="set-landed-margin"></button>
+					<input id="oem_above_lc" value="<?php echo $this->getDefaultOEMMargin(); ?>" />
+
+					<div id="OEM" class="price-headtools">
+						<button id="lock-OEM-new" class="lock-price"></button>
+						<button id="round-OEM-new" class="round-price"></button>
+						<button id="reset-OEM-new" class="reset-price"></button>
+					</div>
+				</div>
+			</th>
+			<th id="OEM-DC-head">
+				<div>
+					<button id="set-oem-dc" class="set-column-margin"></button>
+					<input id="oem_below_distributor"
+						class="input-column-margin" />
+				</div>
+				<div>
+					<button id="lock-OEM-DC" class="lock-column"></button>
+					<button id="refresh-oem-dc" class="refresh"></button>
+				</div>
+				<div>
+					<button id="project-dc-oem" class="project-left"></button>
+					<button id="project-oem-dc" class="project-right"></button>
+				</div>
+			</th>
+			<th id="DC-new-head">
+				<div class="landed-column-header">
+					<button id="set-dc-lc" class="set-landed-margin"></button>
+					<input id="distributor_above_lc" />
+					<div id="DC" class="price-headtools">
+						<button id="lock-DC-new" class="lock-price"></button>
+						<button id="round-DC-new" class="round-price"></button>
+						<button id="reset-DC-new" class="reset-price"></button>
+					</div>
+				</div>
+			</th>
+			<th id="DC-WC-head">
+				<div>
+					<button id="set-dc-wc" class="set-column-margin"></button>
+					<input id="distributor_below_wholesale"
+						value="<?php echo $this->getDefaultDistributorMargin(); ?>"
+						class="input-column-margin" />
+				</div>
+				<div>
+					<button id="lock-DC-WC" class="lock-column"></button>
+					<button id="refresh-dc-wc" class="refresh"></button>
+				</div>
+				<div>
+					<button id="project-wc-dc" class="project-left"></button>
+					<button id="project-dc-wc" class="project-right"></button>
+				</div>
+			</th>
+			<th id="WC-new-head">
+				<div class="landed-column-header">
+					<button id="set-wc-lc" class="set-landed-margin"></button>
+					<input id="wholesale_above_lc" />
+
+					<div id="WC" class="price-headtools">
+						<button id="lock-WC-new" class="lock-price"></button>
+						<button id="round-WC-new" class="round-price"></button>
+						<button id="reset-WC-new" class="reset-price"></button>
+					</div>
+				</div>
+			</th>
+			<th id="WC-RC-head">
+				<div>
+					<button id="set-wc-rc" class="set-column-margin"></button>
+					<input id="wholesale_below_retail"
+						value="<?php echo $this->getDefaultWholesaleMargin(); ?>"
+						class="input-column-margin" />
+				</div>
+				<div>
+					<button id="lock-WC-RC" class="lock-column"></button>
+					<button id="refresh-wc-rc" class="refresh"></button>
+				</div>
+				<div>
+					<button id="project-rc-wc" class="project-left"></button>
+					<button id="project-wc-rc" class="project-right"></button>
+				</div>
+			</th>
+			<th id="RC-new-head">
+				<div class="landed-column-header">
+					<button id="set-rc-lc" class="set-landed-margin"></button>
+					<input id="retail_above_lc"
+						value="<?php echo $this->getDefaultRetailMargin(); ?>" />
+					<div id="RC" class="price-headtools">
+						<button id="lock-RC-new" class="lock-price"></button>
+						<button id="round-RC-new" class="round-price"></button>
+						<button id="reset-RC-new" class="reset-price"></button>
+					</div>
+				</div>
+			</th>
+			<th id="Tool-head"></th>
+		</tr>
+		<tr>
+			<th class="sort-head"><div class="columnName">
+					Sku<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Name<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					First Cost<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Freight<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Landed Cost<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					OEM<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Margin<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Distributor<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Margin<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Wholesale<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Margin<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">
+					Retail<span class="ui-icon ui-icon-carat-2-n-s dbl"></span><span
+						class="ui-icon ui-icon-carat-1-n srtdown"></span><span
+						class="ui-icon ui-icon-carat-1-s srtup"></span>
+				</div></th>
+			<th class="sort-head"><div class="columnName">Do</div></th>
+		</tr>
+	</thead>
+	<tfoot></tfoot>
+	<tbody>
+	</tbody>
+</table>
+	R - round field <br>
+	O - reset feld data<br>
+	L - toggle row lock<br>
+	U - unlock row
+	
+<!-- Alert Divs: -->
+<div id="warning-dialog"></div>
+<div id="delete-dialog"></div>
+<div id="save-fail"></div>

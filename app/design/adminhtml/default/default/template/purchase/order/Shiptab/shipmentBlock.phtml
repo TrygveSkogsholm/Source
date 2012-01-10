@@ -1,0 +1,22 @@
+<!-- Assumes standard jquery css and script -->
+<div id="<?php echo 'shipment_'.$this->shipment->getId() ?>" >
+	<div>
+		<span>Shipment #<?php echo $this->shipment->getId();?></span>
+	</div>
+	<ol class="items">
+	<?php 
+		foreach ($this->shipment->getItems() as $item)
+		{
+			$block = $this->getLayout()->createBlock('purchase/orders_edit_tab_shiptab_item');
+			$block->setItem($item);
+			$block->location = 'shipment';
+			echo $block->toHtml();
+		}
+	?>
+	</ol>
+	<div>
+		<button>Ship</button>
+		<button>Receive</button>
+		<button>Remove</button>
+	</div>
+</div>

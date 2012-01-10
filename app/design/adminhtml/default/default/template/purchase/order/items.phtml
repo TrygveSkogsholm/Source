@@ -1,0 +1,1131 @@
+<!-- Ok Here is the insane plan... AJAX!, the javascript will use XMLHttpRequest to retreive product data
+It will also send a request to add products in real time (via controller url)-->
+
+<!-- Styles -->
+<style type="text/css">
+.head {
+	margin-top: 4px;
+	color: white;
+	font-weight: bold;
+	color: white;
+}
+
+.product-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.product-table td {
+	border-bottom: 1px solid #DADFE0;
+	padding: 0.4em;
+}
+
+.product-table .sku {
+	font-weight: bold;
+}
+
+.product-table th {
+	padding-bottom: 0.7em;
+	border-bottom: 1px solid #DADFE0;
+}
+
+.product-table input {
+	margin-left: 8px;
+}
+
+.first_cost {
+	width: 42px;
+}
+
+.qty {
+	width: 40px;
+}
+
+.qty input {
+	width: 40px;
+}
+
+.table-toolbar li
+{
+	display: inline;
+	float:left;
+}
+
+.table-toolbar li:hover
+{
+	background:url("images/btn_over_bg.gif") repeat-x scroll 0 0 #F77C16;
+}
+
+.table-toolbar li:active
+{
+	background:url("images/btn_on_bg.gif") repeat-x scroll 0 0 #F77C16;
+}
+
+#order_tabs_items_content input
+{
+	width:35px;
+	margin-left:4px;
+}
+
+.pagination
+{
+	float:right;
+	display:inline;
+	width:230px;
+}
+
+.transparent-back {
+	color: #D85909;
+	font-size: 1.1em;
+	font-weight: bold;
+	opacity: 0.9;
+	position: absolute;
+	text-align: center;
+	z-index: 500;
+}
+
+.addNewClass {
+	background: none repeat scroll 0 0 #FFF4E9;
+	border: 2px solid #F1AF73;
+	color: #D85909;
+	font-weight: bold;
+	left: 50%;
+	margin-left: -60px;
+	padding: 15px 60px;
+	position: fixed;
+	text-align: center;
+	top: 45%;
+	width: 300px;
+	z-index: 1000;
+}
+
+#totalsDiv div {
+	padding: 5px;
+}
+
+#totalsDiv span {
+	font-weight: bold;
+}
+
+.extended
+{
+	font-size:12px;
+	max-width:150px;
+	height:13px;
+	margin-bottom:1px;
+	vertical-align:top;
+	font-style:italic;
+}
+
+.extended input
+{
+	height:12px;
+	font-size:11px;
+}
+.extended img
+{
+	cursor:pointer;
+}
+.extended_cost
+{
+	float:right;
+}
+
+#extended-dialog div
+{
+	vertical-align:top;
+	padding:3px;
+}
+
+#extended-dialog .label
+{
+	display:inline-block;
+	width:160px;
+}
+
+#extended-dialog input
+{
+}
+
+/* simple css-based tooltip */
+.tooltip {
+	background-color:#000;
+	border:1px solid #fff;
+	padding:10px 15px;
+	width:200px;
+	display:none;
+	color:#fff;
+	text-align:left;
+	font-size:12px;
+
+	/* outline radius for mozilla/firefox only */
+	-moz-box-shadow:0 0 10px #000;
+	-webkit-box-shadow:0 0 10px #000;
+}
+
+
+</style>
+
+<?php
+/*
+ * This page will be driven by jQuery reaction to user input, it will reflect any changes it makes or allows
+ * via ajax functions.
+ *
+ * They are AJAXadd, AJAXremove, AJAXupdate (all refering to a po item). Each will look for the parameter id which will
+ * be the PO_item ID. (except add), in which case it will look for the po_id
+ *
+ * For shipping ther is AJAXaddToShipment, AJAXremoveFromShipment, AJAXupdateInShipment which reflect above exept the id
+ * is shipment product id, and shipment_id instead of po_id for add.
+ *
+ * There is also the AJAXnewShipment AJAXship, AJAXreceive, and AJAXcancel functions for the shipments themselves.
+ *
+ * Each of these will have a javascript entry point funtion mirroring their parameters.
+ */
+?>
+<?php echo '<script type="text/javascript" src="'.$this->getJsUrl('jquery.tablesorter.js').'"></script>'; ?>
+
+<?php echo '<script type="text/javascript" src="'.$this->getJsUrl('jquery.tablesorter.pager.js').'"></script>'; ?>
+
+<script type="text/javascript">
+var Order = <?php echo $this->getAvailibleJSON(); ?>;
+
+jQuery('document').ready(function()
+		{
+		jQuery( "#progressbar" ).progressbar({
+			value: 100
+		});
+		hideAdd();
+		populateAdd();
+			//Pagination and sorting - this tablesorter is not working out 
+			/*
+			jQuery('#current-products-table').tablesorter(
+			{
+				textExtraction: myTextExtraction,
+				//selectorHeaders: 'thead th.sort-head',
+				headers: {
+					<?php
+						if ($this->getOrder()->Status() == 1)
+						{
+							echo '0: {sorter: false},1: {sorter: false},5: {sorter: "digit"},6: {sorter: "digit"},8: {sorter: false},9: {sorter: false}';
+						}
+						else
+						{
+							echo '3:{sorter: "currency"},4:{sorter: "digit"},5:{sorter: "percent"},6: {sorter: false},7:{sorter: false}';
+						}
+					?>
+				},
+				cssHeader:'sortable-item-header'
+			})
+			.tablesorterPager(
+					{
+						container: jQuery("#currentpagination"),
+						positionFixed:false,
+						size:<?php echo Mage::getStoreConfig('orders/interface/pagination'); ?>,
+						cssNext:".current-table .next",
+						cssPrev:".current-table .prev",
+						cssFirst:".current-table .first",
+						cssLast:".current-table .end",
+						cssPageDisplay: ".current_pagedisplay",
+						cssPageSize: ".current_pagesize"
+					});
+			//Manually trigger update, don't know why this is neccesary...
+			jQuery('.current_pagesize').change();
+			
+			jQuery('#add-products-table')
+			.tablesorter({cssHeader:'sortable-item-header',headers:{0:{sorter:false},1:{sorter:false},5:{sorter:"currency"},6:{sorter:"digit"},7:{sorter:"digit"},8:{sorter:"digit"}}})
+			.tablesorterPager(
+					{
+						container: jQuery("#addpagination"),
+						positionFixed:false,
+						size:<?php echo Mage::getStoreConfig('orders/interface/pagination'); ?>,
+						cssNext:".add-table .next",
+						cssPrev:".add-table .prev",
+						cssFirst:".add-table .first",
+						cssLast:".add-table .end",
+						cssPageDisplay: ".add_pagedisplay",
+						cssPageSize: ".add_pagesize"
+					});
+			//Manually trigger update, don't know why this is neccesary...
+			jQuery('.add_pagesize').change();*/
+
+			jQuery('input.qty[title]').tooltip({
+	
+				// place tooltip on the right edge
+				position: "center left",
+	
+				// a little tweaking of the position
+				offset: [0, -10],
+	
+				// use the built-in fadeIn/fadeOut effect
+				effect: "fade",
+	
+				// custom opacity setting
+				opacity: 0.9
+	
+			});
+
+			Order.updateTotal();
+		});
+
+function activateTooltip(element)
+{
+	element.tooltip({
+
+		// place tooltip on the right edge
+		position: "center left",
+
+		// a little tweaking of the position
+		offset: [0, -10],
+
+		// use the built-in fadeIn/fadeOut effect
+		effect: "fade",
+
+		// custom opacity setting
+		opacity: 0.9
+
+	});
+}
+
+var myTextExtraction = function (node)
+{
+	// extract data from markup and return it  
+	node = jQuery(node);
+	if (node.find('input').length > 0)
+	{
+		//node.append((node.find('input:first').val()).toString());
+		return (node.find('input:first').val()).toString();
+	}
+	else
+	{
+		//node.append(node.text());
+		return (node.text()).toString();
+	}
+}
+
+function updatePager()
+{
+	
+}
+
+//AJAX functions, for the updates to work properly the input name must equal the setData getData name for the model
+Order.updateTotal = function()
+{
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXtotals'); ?>",
+		data: {
+			'id': <?php echo $this->getOrder()->getId(); ?>,
+		},
+		success: function (response)
+		{
+			jQuery('#totalsDiv').html(response);
+		}
+	});
+}
+
+Order.add = function(supplierProductId,qty)
+{
+	//Validate Qty
+	var caseQty = getCaseQty(supplierProductId);
+	if (qty == null)
+	{
+		qty = parseInt(jQuery('#addqty_'+supplierProductId).val());
+		if (isNaN(qty) || qty <= 0)
+		{
+			if (caseQty == null)
+			{
+				qty = 1;
+			}
+			else
+			{
+				qty = caseQty;
+			}
+		}
+	}
+	
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXadd'); ?>",
+		dataType:"json",
+		async:false,
+		data: {
+			'po_id': <?php echo $this->getOrder()->getId(); ?>,
+			'supplier_product_id':supplierProductId,
+			'qty':qty
+		},
+		success: function (response)
+		{
+			if ("success" in response)
+			{
+				//Accept
+				if (response.success == true)
+				{
+					//View
+					//add
+					var jTableBody = jQuery('#current-body');
+					var jRow = jQuery('<tr>').attr('id', 'po_item_'+response.id).addClass('current-product');
+					jRow.append('<td><input type="checkbox" value="'+response.id+'" tabindex="-1" class="currentselected" id="po_item_'+response.id+'_select"></td>');
+					jRow.append('<td><img onclick="Order.remove('+response.id+')" src="<?php echo $this->getSkinUrl('images/accordion_close.png') ?>"></td>');
+					
+					//Sku
+					jRow.append(jQuery('<td>').append(Order.availible_items['sup_item_'+supplierProductId].sku).addClass('sku'));
+				
+					//Model
+					jRow.append(jQuery('<td>').append(Order.availible_items['sup_item_'+supplierProductId].model).addClass('model'));
+				
+					//Name
+					jRow.append(jQuery('<td>').append(Order.availible_items['sup_item_'+supplierProductId].name).addClass('name'));
+				
+					//First Cost
+					jRow.append(jQuery('<td>').append('<input type="text" name="first_cost" value="'+(parseFloat(Order.availible_items['sup_item_'+supplierProductId]['first_cost'])).toFixed(2)+'" onchange="Order.update('+response.id+',jQuery(this))" id="first_cost_'+response.id+'" class="first_cost" />'));
+				
+					//Qty
+					jRow.append(jQuery('<td>').append('<input type="text" name="qty" title="Case Qty:'+caseQty+'" value="'+response.qty+'" onchange="Order.update('+response.id+',jQuery(this))" id="po_qty_'+response.id+'" class="qty" />'));
+					if (caseQty != null)
+					{
+						activateTooltip(jQuery('#po_qty_'+response.id));
+					}
+					
+					//Duty
+					jRow.append(jQuery('<td>').append(response.rate));
+				
+					//Extended
+					var jExtendedCell = jQuery('<td>').addClass('extended-cell');
+
+					for (i=0;i<response.extended.length;i++)
+					{
+						jExtendedCell.append('<div class="extended" id="extended_'+response.extended[i]["id"]+'" title="'+response.extended[i]["description"]+'"><img alt="delete" onclick="removeExtendedCost('+response.extended[i]["id"]+')" src="<?php echo $this->getSkinUrl("images/icon_btn_delete.gif"); ?>">'+response.extended[i]["name"]+'<input type="text" size="6" value="'+response.extended[i]["cost"]+'" onchange="updateExtendedCost('+response.extended[i]["id"]+')" id="extended_cost_'+response.extended[i]["id"]+'" class="extended_cost"></div>');
+					}
+					jExtendedCell.append('<img onclick="addExtendedCostDialog('+response.id+')" src="<?php echo $this->getSkinUrl('images/icon_btn_add.gif'); ?>" alt="add">');
+					jRow.append(jExtendedCell);
+					
+					//Total
+					jRow.append(jQuery('<td>').append('$'+response.total).addClass('total'));
+					
+					jTableBody.append(jRow);
+
+					//remove
+					jQuery('#sup_item_'+supplierProductId).remove();
+					
+					//Update pager
+					updatePager();
+					Order.updateTotal();
+				}
+				//Reject
+				else
+				{
+					alert(response.error);
+				}
+			}
+		}
+	});
+}
+
+
+
+Order.update = function(id,input)
+{
+	var field = input.attr('name');
+	var data = input.val();
+	
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXupdate'); ?>",
+		type:"POST",
+		dataType:"json",
+		data: {
+			'id': id,
+			'field':field,
+			'data':data,
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+			//View
+			/*
+			*/
+			if ("success" in response)
+			{
+				//Accept
+				if (response.success == true)
+				{
+					input.val(response.data);
+					jQuery('#po_item_'+id+' .total').html(response.total);
+					Order.updateTotal();
+				}
+				//Reject
+				else
+				{
+					alert(response.error);
+				}
+			}
+		}
+	});	
+}
+
+Order.remove = function(id)
+{
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXremove'); ?>",
+		dataType:"json",
+		async:false,
+		data: {
+			'id': id
+		},
+		success: function (response)
+		{
+			/*
+			If everything is ok from the server, we will need stock and on order to
+			add it to the supplier items list (add).
+			*/
+			//Accept
+			if ("success" in response)
+			{
+				if (response.success == true)
+				{
+					//Assemble add item
+					var item = new Object();
+					item.on_order = response.on_order;
+					item.stock = response.stock;
+					item.id = response.supplier_product_id;
+					item.case_qty = response.case_qty;
+					item.first_cost = jQuery('#first_cost_'+id).val();
+					item.model = jQuery('#po_item_'+id+' .model').text();
+					item.name = jQuery('#po_item_'+id+' .name').text();
+					item.sku = jQuery('#po_item_'+id+' .sku').text();	
+					Order.availible_items['sup_item_'+item.id] = item;
+					//View
+					Order.addAvailibleItem(item);
+					jQuery('#po_item_'+id).remove();
+
+					//Update pager
+					updatePager();
+					Order.updateTotal();
+				}
+				//Reject
+				else
+				{
+					alert(response.error);
+				}
+			}
+		}
+	});	
+}
+
+function addToShipment(shipmentId,productId,qty)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXaddToShipment'); ?>",
+		data: {
+			'shipment_id': shipmentId,
+			'po_prouct_id': productId,
+			'qty': shipmentId
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});		
+}
+
+function removeFromShipment(shipmentProductid)
+{
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXremoveFromShipment'); ?>",
+		data: {
+			'id': shipmentProductid
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+			//View
+		}
+	});		
+}
+
+function updateInShipment(shipmentProductid,field)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXupdateInShipment'); ?>",
+		type:"POST",
+		dataType:"json",
+		data: {
+			'id': shipmentProductid,
+			'field':field,
+			'data':data,
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+		}
+	});		
+}
+
+function newShipment()
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXnewShipment'); ?>",
+		data: {
+			'po_id': <?php echo $this->getOrder()->getId(); ?>
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});		
+}
+
+function ship(shipmentId)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXship'); ?>",
+		data: {
+			'id': shipmentId
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});		
+}
+
+function receive(shipmentId)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXreceive'); ?>",
+		data: {
+			'id': shipmentId
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});		
+}
+
+function cancel(shipmentId)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXcancel'); ?>",
+		data: {
+			'id': shipmentId
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});		
+}
+
+function getUnshippedQty(id)
+{
+	//View
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXgetUnshippedQty'); ?>",
+		data: {
+			'id': id
+		},
+		success: function (response)
+		{
+			response = JSON.parse(response);
+		}
+	});	
+}
+
+function addExtendedCostDialog(poItemId)
+{
+	if (jQuery('#extended-dialog').length > 0)
+	{
+		jQuery('#extended-dialog').dialog("open");
+	}
+	else
+	{
+		dialog = jQuery('<div>').attr('id', 'extended-dialog');
+	
+		dialog.append('<div><div class="label"><label for="display-input">Display to Supplier</label></div><input id="display-input" name="display" type="checkbox" /></div>');
+		dialog.append('<div><div class="label"><label for="cost-input">Cost</label></div><input id="cost-input" name="cost" type="text" /></div>');
+		dialog.append('<div><div class="label"><label for="name-input">Name</label></div><input id="name-input" name="name" type="text" /></div>');
+		dialog.append('<div><div class="label"><label for="description-input">Description</label></div><textarea id="description-input" name="description" /></textarea></div>');
+	
+		dialog.dialog(
+		{
+			modal: true,
+			title: 'Add Extended Cost',
+			width: 400,
+			height:300,
+			buttons:
+			{"Save":function()
+				{
+					var cost, name, description, shown;
+					cost = jQuery('#cost-input').val();
+					name = jQuery('#name-input').val();
+					description = jQuery('#description-input').val();
+					shown = jQuery('#display-input').attr('checked');
+					addExtendedCost(poItemId,cost,name,description,shown);
+					jQuery(this).dialog("close");
+					jQuery(this).remove();
+				}
+			}
+		});
+	}
+}
+
+function addExtendedCost(poItemId,cost,name,description,shown)
+{
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXaddExtended'); ?>",
+		type:"POST",
+		dataType:"json",
+		data: {
+			'id': poItemId,
+			'cost':cost,
+			'name':name,
+			'description':description,
+			'shown':shown,
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+			//View
+			/*
+			*/
+			if ("success" in response)
+			{
+				//Accept
+				if (response.success == true)
+				{
+					jQuery('#po_item_'+poItemId+' .extended-cell').prepend
+					(
+						'<div title="'+description+'" id="extended_'+response.id+'" class="extended">'
+						+'<img src="<?php echo $this->getSkinUrl('images/icon_btn_delete.gif'); ?>" onclick="removeExtendedCost('+response.id+')" alt="delete">'
+						+name
+						+'<input type="text" class="extended_cost" id="extended_cost_'+response.id+'" onchange="updateExtendedCost('+response.id+')" value="'+cost+'" size="6">'
+						+'</div>'
+					);
+				}
+				//Reject
+				else
+				{
+					alert(response.error);
+				}
+			}
+		}
+	});
+}
+
+function updateExtendedCost(extendedCostId)
+{
+	var cost = jQuery('#extended_cost_'+extendedCostId).val();
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXupdateExtended'); ?>",
+		type:"POST",
+		dataType:"json",
+		data: {
+			'id': extendedCostId,
+			'cost':cost,
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+			//View
+			/*
+			*/
+			if ("success" in response)
+			{
+				jQuery('#extended_cost_'+extendedCostId).val(response.value);
+			}
+		}
+	});
+}
+
+function removeExtendedCost(extendedCostId)
+{
+	//Model
+	jQuery.ajax(
+	{
+		url: "<?php echo $this->getUrl('*/*/AJAXremoveExtended'); ?>",
+		type:"POST",
+		dataType:"json",
+		data: {
+			'id': extendedCostId,
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+			//View
+			/*
+			*/
+			if ("success" in response)
+			{
+				//Accept
+				if (response.success == true)
+				{
+					jQuery('#extended_'+extendedCostId).remove();
+				}
+				//Reject
+				else
+				{
+					alert(response.error);
+				}
+			}
+		}
+	});
+}
+//Progress bar functions describing ajax functions being qued up.
+var progressIncrement;
+//0 - 100
+var progress;
+function resetProgressBar(numberOfActions)
+{
+	//The increment will always be 100  divided by the number of tasks
+	progressIncrement = 100/numberOfActions;
+	progress = 0;
+	jQuery("#progressbar" ).progressbar("option","value",progress);
+}
+
+function incrementProgressBar()
+{
+	progress += progressIncrement;
+	jQuery("#progressbar" ).progressbar("option","value",progress);
+
+}
+//Manipulation functions
+function hideAdd()
+{
+	jQuery('#AddProductsContainer').hide();
+	jQuery('#addItemsTitle').hide();
+}
+
+function showAdd()
+{
+	
+}
+
+function toggleAdd()
+{
+	jQuery('#AddProductsContainer').toggle('blind',2000,function(){
+		jQuery('#addItemsTitle').toggle('slide',1000);
+		});
+}
+
+function selectAllAdd()
+{
+	jQuery('.addselected').each(function()
+			{
+				jQuery(this).click();
+			});
+}
+
+function selectAllCurrent()
+{
+	jQuery('.currentselected').each(function()
+		{
+			jQuery(this).click();
+		});
+}
+
+function addSelected()
+{
+	resetProgressBar(jQuery('.addselected:checked').length);
+	jQuery('.addselected:checked').each
+	(
+			function()
+			{
+				Order.add(jQuery(this).val(),null);
+				incrementProgressBar();
+			}
+	);
+}
+
+function removeSelected()
+{
+	resetProgressBar(jQuery('.currentselected:checked').length);
+	jQuery('.currentselected:checked').each
+	(
+			function()
+			{
+				Order.remove(jQuery(this).val());
+				incrementProgressBar();
+			}
+	);
+}
+
+function getCaseQty(id)
+{
+	return Order.availible_items[('sup_item_'+id)].case_qty;
+}
+
+function addProductQtyOnChange(id,input)
+{
+	//validate
+	var qty = input.val();
+	var caseQty = getCaseQty(id);
+	qty = parseInt(qty);
+	if (isNaN(qty) == true || qty <= 0)
+	{
+		if (caseQty)
+		{
+			qty = 1;
+		}
+		else
+		{
+			qty = caseQty;
+		}
+	}
+	else
+	{
+		//check to see if it's properly within case qty
+		if (caseQty && qty%caseQty != 0)
+		{
+			var roundingTo = Number(caseQty);
+			var value = Number(qty);
+			var roundedValue = (Math.round(value / roundingTo)) * roundingTo;
+			if (roundedValue == 0)
+			{
+				roundedValue = caseQty;
+			}
+			alert('You may want to order '+Order.availible_items['sup_item_'+id].sku+' in whole number multiples of '+caseQty
+					+'\r\n The nearest such number is: '+roundedValue);
+		}
+	}
+	
+	input.val(qty);
+	//select
+	jQuery('#selected_sup_item_'+id).attr('checked','checked');
+}
+
+function addProductSelect()
+{
+}
+
+function populateAdd()
+{
+	for (item in Order.availible_items)
+	{
+		Order.addAvailibleItem(Order.availible_items[item]);
+	}
+}
+
+function getTotals()
+{
+	
+}
+
+Order.addAvailibleItem = function(item)
+{
+	var jTableBody = jQuery('#add-body');
+	var jRow = jQuery('<tr>').attr('id', 'sup_item_'+item.id).addClass('add-product');
+	jRow.append('<td><input type="checkbox" value="'+item.id+'" class="addselected" id="selected_'+'sup_item_'+item.id+'" tabindex="-1"></td>');
+	jRow.append('<td><img onclick="Order.add(' + item.id + ',null)" src="<?php echo $this->getSkinUrl('images/accordion_open.png'); ?>"></td>');
+	
+	//Sku
+	jRow.append(jQuery('<td>').append(item.sku).addClass('sku'));
+
+	//Model
+	jRow.append(jQuery('<td>').append(item.model).addClass('model'));
+
+	//Name
+	jRow.append(jQuery('<td>').append(item.name).addClass('name'));
+
+	//First Cost
+	jRow.append(jQuery('<td>').append('$'+(Number(item.first_cost)).toFixed(2)).addClass('first_cost'));
+
+	//Stock
+	jRow.append(jQuery('<td>').append(parseInt(item.stock)));
+
+	//On Order
+	jRow.append(jQuery('<td>').append(item.on_order));
+
+	if (item.case_qty != null)
+	{
+		var title = 'title="Case Qty:'+item.case_qty+'"';
+	}
+	else
+	{
+		var title = '';
+	}
+
+	//Qty to Add
+	jRow.append(jQuery('<td>').append('<input type="text" class="qty" '+title+' onchange="addProductQtyOnChange('+item.id+',jQuery(this))" id="addqty_'+item.id+'" />'));
+	jTableBody.append(jRow);
+}
+</script>
+
+<?php if ($this->getOrder()->Status() == 1):?>
+<div id="progressbar">
+</div>
+<?php endif; ?>
+<br/>
+<div style="width: 100%;">
+	<?php if ($this->getOrder()->Status() == 1):?>
+	<button style="" onclick="toggleAdd()" class="scalable add" type="button" id="show_grid_button"><span>Supplier Items</span></button>
+	<button style="" onclick="addWholeNewProductOpen()" class="scalable add" type="button" id="show_grid_button"><span>Add Product to Supplier and Order</span></button>
+	<?php endif;?>
+	<button style="" onclick="window.location = '<?php echo $this->getUrl('*/price/new',array('po_id'=>$this->getOrder()->getId())) ?>';" type="button" id="price_button"><span>Adjust Prices</span></button>
+</div>
+
+<!-- Add List -->
+<div class="head entry-edit-head" id="addItemsTitle">Add Items<div id="addpagination" class="pagination">
+	<form>
+		<ul class="table-toolbar add-table">
+			<li title="first page" class="ui-corner-all form-button first"><span class="ui-icon ui-icon-seek-first"></span></li>
+			<li title="previous page" class="ui-corner-all form-button prev"><span class="ui-icon ui-icon-seek-prev"></span></li>
+			<li title="next page" class="ui-corner-all form-button next"><span class="ui-icon ui-icon-seek-next"></span></li>
+			<li title="last page" class="ui-corner-all form-button end"><span class="ui-icon ui-icon-seek-end"></span></li>
+		</ul>
+		<input type="text" class="add_pagedisplay" />
+		<select class="add_pagesize">
+			<option value="10">10</option>
+			<option value="25">25</option>
+			<option value="40">40</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+		</select>
+	</form>
+</div></div>
+
+<?php 
+//add Items section variables
+$removeImage = $this->getSkinUrl('images/accordion_close.png');
+?>
+<div id="AddProductsContainer" class="fieldset">
+<table class="product-table product" id="add-products-table">
+	<thead>
+	<tr>
+			<th><a onclick="selectAllAdd()"
+				style="cursor: pointer; font-size: x-small;">Select All</a></th>
+			<th>Add</th>
+			<th>Sku</th>
+			<th>Model</th>
+			<th>Name</th>
+			<th>First Cost</th>
+			<th>Stock</th>
+			<th>On Order</th>
+			<th>Qty to Add</th>
+	</tr>
+	</thead>
+<tfoot></tfoot>
+<tbody id="add-body">
+</tbody>
+</table>
+<br />
+<button style="" onclick="addSelected()" class="scalable add" type="button"
+	id="add_selected_button"><span>Add Selected</span></button>
+</div>
+
+<!-- Items -->
+<div class="head entry-edit-head">Items<div id="currentpagination" class="pagination">
+	<form>
+		<ul class="table-toolbar current-table">
+			<li title="first page" class="ui-corner-all form-button first"><span class="ui-icon ui-icon-seek-first"></span></li>
+			<li title="previous page" class="ui-corner-all form-button prev"><span class="ui-icon ui-icon-seek-prev"></span></li>
+			<li title="next page" class="ui-corner-all form-button next"><span class="ui-icon ui-icon-seek-next"></span></li>
+			<li title="last page" class="ui-corner-all form-button end"><span class="ui-icon ui-icon-seek-end"></span></li>
+		</ul>
+		<input type="text" class="current_pagedisplay" />
+		<select class="current_pagesize">
+			<option value="10">10</option>
+			<option value="25">25</option>
+			<option value="40">40</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+		</select>
+	</form>
+</div></div>
+
+<?php 
+//Items section variables
+$removeImage = $this->getSkinUrl('images/accordion_close.png');
+?>
+<div id="CurrentProductsContainer" class="fieldset">
+<table class="product-table product" id="current-products-table">
+	<thead>
+	<tr>
+		<?php if ($this->getOrder()->Status() == 1): ?>
+		<th><a onclick="selectAllCurrent()" style="cursor: pointer; font-size: x-small;">Select All</a></th>
+		<th>Remove</th>
+		<?php endif; ?>
+		<th>Sku</th>
+		<th>Model</th>
+		<th>Name</th>
+		<th>First Cost</th>
+		<th>Qty</th>
+		<?php if($this->getOrder()->isDuty()): ?>
+		<th>Duty</th>
+		<?php endif; ?>
+		<th>Extended Costs</th>
+		<th>Total</th>
+	</tr>
+	</thead>
+<tfoot></tfoot>
+<tbody id="current-body">
+<?php foreach ($this->getOrder()->getItems() as $item): ?>
+	<tr id="po_item_<?php echo $item->getId(); ?>" class="current-product" onDblclick="">
+		<?php if ($this->getOrder()->Status() == 1): ?>
+		<td><input type="checkbox"  id="po_item_<?php echo $item->getId(); ?>_select" class="currentselected" tabindex="-1" value="<?php echo $item->getId(); ?>" /></td>
+		<td><img alt="remove" src="<?php echo $removeImage; ?>" onclick="Order.remove(<?php echo $item->getId(); ?>)" /></td>
+		<?php endif; ?>
+		<td class="sku" ><?php echo $item->getSku(); ?></td>
+		<td class="model" ><?php echo $item->getModelString(); ?></td>
+		<td class="name" ><?php echo $item->getName(); ?></td>
+		<?php if($item->isEditable()): ?>
+		<td><input type="text" class="first_cost" name="first_cost" id="first_cost_<?php echo $item->getId(); ?>" onchange="Order.update(<?php echo $item->getId(); ?>,jQuery(this))" value="<?php echo $item->getFirstCost(); ?>"  ></td>
+		<td><input type="text" class="qty" <?php echo ($item->getCaseQty() != null)?('title="Case Qty:'.$item->getCaseQty().'"'):''; ?> name="qty" id="po_qty_<?php echo $item->getId(); ?>" onchange="Order.update(<?php echo $item->getId(); ?>,jQuery(this))" value="<?php echo (int)$item->getItemQty() ?>"  ></td>
+		<?php else: ?>
+		<td><?php echo Mage::helper('core')->currency($item->getFirstCost(),true,false); ?></td>
+		<td><?php echo (int)$item->getItemQty(); ?></td>
+		<?php endif; ?>
+		<?php if($this->getOrder()->isDuty()): ?>
+		<td><?php echo Mage::helper('purchase')->formatPercentage($item->getDutyRate()); ?></td>
+		<?php endif; ?>
+		<td class="extended-cell">
+		<?php foreach($item->getExtendedCosts() as $extended):?>
+		<div class="extended" id="extended_<?php echo $extended->getId(); ?>" title="<?php echo $extended->getDescription(); ?>">
+			<img alt="delete" onclick="removeExtendedCost(<?php echo $extended->getId(); ?>)" src="<?php echo $this->getSkinUrl('images/icon_btn_delete.gif'); ?>">
+			<?php echo $extended->getName(); ?>
+			<input type="text" size="6" value="<?php echo $extended->getCost(); ?>" onchange="updateExtendedCost(<?php echo $extended->getId(); ?>)" id="extended_cost_<?php echo $extended->getId(); ?>" class="extended_cost" />
+		</div>
+		<?php endforeach; ?>
+		<img alt="add" src="<?php echo $this->getSkinUrl('images/icon_btn_add.gif'); ?>" onclick="addExtendedCostDialog(<?php echo $item->getId(); ?>)">
+		</td>
+		<td class="total"><?php echo Mage::helper('core')->currency($item->getSubtotal(),true,false); ?></td>
+	</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+<br />
+<?php if ($this->getOrder()->Status() == 1):?>
+<button style="" onclick="removeSelected()" class="scalable delete" type="button" id="remove_selected_button"><span>Remove Selected</span></button>
+<?php endif;?>
+</div>
+<div id="totalsDiv"></div>

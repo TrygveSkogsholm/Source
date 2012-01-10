@@ -1,0 +1,107 @@
+<script>
+
+function toggleStockInput(productId)
+{
+	var chName = 'ch_stock_' + productId;
+	var txtName = 'stock_' + productId;
+	
+	if (document.getElementById(chName).checked)
+		document.getElementById(txtName).disabled = false;
+	else
+		document.getElementById(txtName).disabled = true;
+}
+
+function toggleStockMiniInput(productId)
+{
+	var chName = 'ch_stockmini_' + productId;
+	var txtName = 'stockmini_' + productId;
+	
+	if (document.getElementById(chName).checked)
+		document.getElementById(txtName).disabled = false;
+	else
+		document.getElementById(txtName).disabled = true;
+}
+
+function saveData()
+{
+	var stock = '';
+	var stockMini = '';
+	
+	//collect informaiton to update
+	var ch = document.getElementsByTagName('input');
+	for (i=0; i < ch.length; i++) 
+	{
+		if (ch[i] && ch[i].id != null)
+		{
+			//if it concerns stocks
+			if (ch[i].id.indexOf('ch_stock_') != -1) 
+			{
+				if (ch[i].checked)
+				{
+					var productId = ch[i].id.replace('ch_stock_', '');
+					var stockValue = document.getElementById('stock_' + productId).value;
+					stock += productId + '-' + stockValue + ',';
+				}
+			}
+			//if it concerns stocks
+			if (ch[i].id.indexOf('ch_stockmini_') != -1) 
+			{
+				if (ch[i].checked)
+				{
+					var productId = ch[i].id.replace('ch_stockmini_', '');
+					var stockMiniValue = document.getElementById('stockmini_' + productId).value;
+					stockMini += productId + '-' + stockMiniValue + ',';				
+				}			
+			}
+		}
+	}
+	
+	//store data in form
+	document.getElementById('stock').value = stock;
+	document.getElementById('stockmini').value = stockMini;
+	
+	//send ajax request to update datas
+	var url = '<?php echo $this->getUrl('*/*/MassStockSave'); ?>';
+    var request = new Ajax.Request(
+        url,
+        {
+            method: 'post',
+            onSuccess: function onSuccess(transport)
+		        			{		        				
+		        				alert('<?php echo $this->__('Data successfully saved'); ?>');
+		        			},
+			onFailure: function onFailure(transport)
+		        			{
+								alert('<?php echo $this->__('Error !'); ?>');
+		        			},
+   			parameters: Form.serialize(document.getElementById('ajax_form'))
+        }
+    );
+
+}
+
+</script>
+
+<form id="ajax_form" name="ajax_form">
+	<input type="hidden" name="stock" id="stock" value="">
+	<input type="hidden" name="stockmini" id="stockmini" value="">
+</form>
+
+<div class="entry-edit">
+
+<div class="content-header">
+    <table cellspacing="0" class="grid-header">
+        <tr>
+            <td><h3><?php echo$this->__('Mass Stock Editor')?></h3></td>
+            <td align="right">
+                <button onclick="saveData();" class="scalable save" type="button"><span><?php echo $this->__('Save')?></span></button>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<?php echo $this->getGridParentHtml() ?>
+
+</div>
+
+<button style=""  type="button" class="scalable save" id="printAllButton" onclick="setLocation('<?php echo $this->getUrl('*/*/downloadPricing'); ?>');"><span>Download Pricing CSV</span></button>

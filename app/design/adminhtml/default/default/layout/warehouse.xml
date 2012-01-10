@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+    <warehouse_adminhtml_stock_index>
+        <reference name="content">
+            <block type="warehouse/adminhtml_stock" name="warehouse_stock" />
+        </reference>
+    </warehouse_adminhtml_stock_index>
+    
+    <warehouse_adminhtml_stock_inventory>
+        <reference name="content">
+            <block type="warehouse/adminhtml_inventory" name="warehouse_inventory" />
+        </reference>
+    </warehouse_adminhtml_stock_inventory>
+    
+    <warehouse_adminhtml_order_index>
+        <reference name="content">
+            <block type="warehouse/adminhtml_orders" name="warehouseorders" template="warehouse/orders.phtml" />
+        </reference>
+   	</warehouse_adminhtml_order_index>
+   	
+   	<warehouse_adminhtml_range_index>
+        <reference name="content">
+            <block type="warehouse/adminhtml_ranges" name="warehouserangesgrid" />
+        </reference>
+   	</warehouse_adminhtml_range_index>
+   	
+   	   	<warehouse_tools_massstockeditor>
+    	<reference name="content">
+    		<block type="warehouse/tools_massstockeditor" name="pa" template="warehouse/massstockeditor.phtml" />
+    	</reference>    
+    </warehouse_tools_massstockeditor>
+</layout>

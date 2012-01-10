@@ -1,0 +1,405 @@
+<?xml version="1.0"?>
+<config>
+	<tabs>
+		<purchase translate="label" module="purchase">
+			<label>Purchasing</label>
+			<sort_order>99999</sort_order>
+		</purchase>
+	</tabs>
+	<sections>
+		<orders translate="label" module="purchase">
+			<label>Orders and Shipments</label>
+			<tab>purchase</tab>
+			<frontend_type>text</frontend_type>
+			<sort_order>1000</sort_order>
+			<show_in_default>1</show_in_default>
+			<show_in_website>1</show_in_website>
+			<show_in_store>1</show_in_store>
+			<groups>
+				<interface translate="label">
+					<label>Interface</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<pagination translate="label">
+							<label>Pagination</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<validate>validate-digits</validate>
+							<comment>Number of items displayed per page in purchase
+								orderitems table.
+								enter integer number</comment>
+						</pagination>
+					</fields>
+				</interface>
+				<shipping translate="label">
+					<label>Shipping Methods</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<order_carrier translate="label">
+							<label>Purchase Order Carriers</label>
+							<frontend_type>textarea</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>Separated with coma</comment>
+						</order_carrier>
+						<sea translate="label">
+							<label>Sea Delay</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<validate>validate-greater-than-zero</validate>
+							<comment>Shipping delay by freighter in days.</comment>
+						</sea>
+						<land translate="label">
+							<label>Land Delay</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<validate>validate-greater-than-zero</validate>
+							<comment>Shipping delay by truck in days.</comment>
+						</land>
+						<air translate="label">
+							<label>Air Delay</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<validate>validate-greater-than-zero</validate>
+							<comment>Shipping delay by airplane in days.</comment>
+						</air>
+					</fields>
+				</shipping>
+				<shipping_address>
+					<label>Ship to Address Default (Your Warehouse or Store)</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>2</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<name translate="label">
+							<label>Company Name</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>0</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</name>
+						<contact translate="label">
+							<label>Primary Contact</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>0</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>Who in your company deals with making purchase orders,
+								departments
+								are acceptable.</comment>
+						</contact>
+						<street1 translate="label">
+							<label>Street, Line 1</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>1</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</street1>
+						<street2 translate="label">
+							<label>Street, Line 2</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</street2>
+						<zip translate="label">
+							<label>Zip</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>3</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</zip>
+						<city translate="label">
+							<label>City</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>4</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</city>
+						<state translate="label">
+							<label>State</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_allregion
+							</source_model>
+							<sort_order>5</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</state>
+						<country translate="label">
+							<label>Country</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_country
+							</source_model>
+							<sort_order>6</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</country>
+					</fields>
+				</shipping_address>
+
+				<printcontact>
+					<label>Printed Contact</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>2</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<name translate="label">
+							<label>Name</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>0</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</name>
+						<email translate="label">
+							<label>Email</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>0</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</email>
+						<phone translate="label">
+							<label>Phone</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>0</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</phone>
+					</fields>
+				</printcontact>
+
+				<deletion translate="label">
+					<label>Deletion Protocol</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<absolute translate="label">
+							<label>Absolute Changes</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_yesno</source_model>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When a purchase order or shipment is deleted should the
+								deletion be carried over to inventory, i.e. if a purchase order
+								has already
+								been received should the items be removed from stock.</comment>
+						</absolute>
+					</fields>
+				</deletion>
+				<restocking translate="label">
+					<label>Restocking</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<instock translate="label">
+							<label>Automatic 'In Stock'</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_yesno</source_model>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>0</show_in_website>
+							<show_in_store>0</show_in_store>
+							<comment>Set 'In Stock' based on inventory when receiving</comment>
+						</instock>
+					</fields>
+				</restocking>
+			</groups>
+		</orders>
+		<pricing>
+			<label>Pricing</label>
+			<tab>purchase</tab>
+			<frontend_type>text</frontend_type>
+			<sort_order>1040</sort_order>
+			<show_in_default>1</show_in_default>
+			<show_in_website>1</show_in_website>
+			<show_in_store>1</show_in_store>
+			<groups>
+				<margins translate="label">
+					<label>Pricing Margins</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<retail_above_lc translate="label">
+							<label>Retail above Landed Cost</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When the pricing tool populates, how much more should
+								retail be than landed cost?</comment>
+						</retail_above_lc>
+						<wholesale_below_retail translate="label">
+							<label>Wholesale below Retail</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When the pricing tool populates, how much less should
+								wholesale be than retail?</comment>
+						</wholesale_below_retail>
+						<distributor_below_wholesale
+							translate="label">
+							<label>Distributor below Wholesale</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When the pricing tool populates, how much less should
+								distributor be than wholesale?</comment>
+						</distributor_below_wholesale>
+						<oem_below_distributor>
+							<label>OEM above Firstcost</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When the pricing tool populates, how much more should
+								OEM be than the first cost?</comment>
+						</oem_below_distributor>
+						<divergence translate="label">
+							<label>Acceptable Divergence</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>If the default margin is 50% and the actual margin is 60%, setting this
+							to 10 or less will warn you, higher and it will not.
+							</comment>
+						</divergence>
+						<freight_margin translate="label">
+							<label>Default Freight</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>When predicting landed costs by margin above first cost.
+							</comment>
+						</freight_margin>
+					</fields>
+				</margins>
+			</groups>
+		</pricing>
+		<restocking translate="label" module="purchase">
+			<label>Suggested Buys</label>
+			<tab>purchase</tab>
+			<frontend_type>text</frontend_type>
+			<sort_order>1200</sort_order>
+			<show_in_default>1</show_in_default>
+			<show_in_website>1</show_in_website>
+			<show_in_store>1</show_in_store>
+			<groups>
+				<analysis translate="label">
+					<label>Analysis Tool</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<default_daterange translate="label">
+							<label>Default Date Ranges</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</default_daterange>
+					</fields>
+				</analysis>
+			</groups>
+		</restocking>
+		<!-- <terms translate="label" module="purchase"> <label>Terms</label> <tab>purchase</tab> 
+			<frontend_type>text</frontend_type> <sort_order>1300</sort_order> <show_in_default>1</show_in_default> 
+			<show_in_website>1</show_in_website> <show_in_store>1</show_in_store> <groups> 
+			<terms translate="label"> <label>Terms</label> <frontend_type>text</frontend_type> 
+			<sort_order>1</sort_order> <show_in_default>1</show_in_default> <show_in_website>1</show_in_website> 
+			<show_in_store>1</show_in_store> <fields> <manufacturer translate="label"> 
+			<label>Synonym of manufacturer</label> <frontend_type>text</frontend_type> 
+			<sort_order>2</sort_order> <show_in_default>1</show_in_default> <show_in_website>0</show_in_website> 
+			<show_in_store>0</show_in_store> <comment>Specify a term which means "the 
+			organization or individual who produces items/products/stock/merchandise." 
+			</comment> </manufacturer> <supplier translate="label"> <label>Synonym of 
+			supplier</label> <frontend_type>text</frontend_type> <sort_order>2</sort_order> 
+			<show_in_default>1</show_in_default> <show_in_website>0</show_in_website> 
+			<show_in_store>0</show_in_store> <comment>Specify a term which means "the 
+			organization or individual from whom items/products/stock/merchandise are 
+			bought (who the PO is sent to)."</comment> </supplier> <shipdate translate="label"> 
+			<label>Synonym of ship date</label> <frontend_type>text</frontend_type> <sort_order>2</sort_order> 
+			<show_in_default>1</show_in_default> <show_in_website>0</show_in_website> 
+			<show_in_store>0</show_in_store> <comment>Specify a term which means "When 
+			the items/products/stock/merchandise leaves the source."</comment> </shipdate> 
+			<receivedate translate="label"> <label>Synonym of receive date</label> <frontend_type>text</frontend_type> 
+			<sort_order>2</sort_order> <show_in_default>1</show_in_default> <show_in_website>0</show_in_website> 
+			<show_in_store>0</show_in_store> <comment>Specify a term which means "When 
+			the items/products/stock/merchandise arrives at the store or warehouse."</comment> 
+			</receivedate> <leadtime translate="label"> <label>Synonym of lead time</label> 
+			<frontend_type>text</frontend_type> <sort_order>2</sort_order> <show_in_default>1</show_in_default> 
+			<show_in_website>0</show_in_website> <show_in_store>0</show_in_store> <comment>Specify 
+			a term which means "Time vendor/supplier/manufacturer needs to prepare items/products/stock/merchandise."</comment> 
+			</leadtime> <firstcost translate="label"> <label>Synonym of first cost</label> 
+			<frontend_type>text</frontend_type> <sort_order>2</sort_order> <show_in_default>1</show_in_default> 
+			<show_in_website>0</show_in_website> <show_in_store>0</show_in_store> <comment>Specify 
+			a term which means "the base cost of items/products/stock/merchandise from 
+			a vendor/supplier/manufacturer excluding all profit margins, shipping costs, 
+			taxes, and duties."</comment> </firstcost> <landedcost translate="label"> 
+			<label>Synonym of landed cost</label> <frontend_type>text</frontend_type> 
+			<sort_order>2</sort_order> <show_in_default>1</show_in_default> <show_in_website>0</show_in_website> 
+			<show_in_store>0</show_in_store> <comment>Specify a term which means "the 
+			final cost of items/products/stock/merchandise from a vendor/supplier/manufacturer 
+			including shipping costs, taxes, and duties."</comment> </landedcost> </fields> 
+			</terms> </groups> </terms> -->
+	</sections>
+</config>

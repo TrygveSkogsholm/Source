@@ -1,0 +1,168 @@
+<?php
+/*
+ * Custom Page for specials velo orange
+ *
+ * code found at http://www.magentocommerce.com/boards/viewthread/29762/
+ * 
+ * Search this file for 'Control Panel!' to change number of columns or max rows
+ */
+
+?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="<?php echo $this->getLang() ?>" lang="<?php echo $this->getLang() ?>">
+<head>
+<?php echo $this->getChildHtml('head') ?>
+
+
+</head>
+<body<?php echo $this->getBodyClass()?' class="'.$this->getBodyClass().'"':'' ?>>
+<?php echo $this->getChildHtml('after_body_start') ?>
+<div class="wrapper">
+    <?php echo $this->getChildHtml('global_notices') ?>
+    <div class="page">
+        <?php echo $this->getChildHtml('header') ?>
+        <div class="main-container col1-layout">
+            <div class="main">
+                <?php echo $this->getChildHtml('breadcrumbs') ?>
+                <div class="col-main">
+                    <?php echo $this->getChildHtml('global_messages') ?>
+                    
+                    <div>
+<div class="page-title category-title" >
+<h1>Specials</h1>
+</div>
+<?php $baseUrl = Mage::getBaseUrl(); ?>
+<img src="<?php echo Mage::getModel('catalog/category')->load(213)->getImageUrl(); ?>" />
+</div>
+					<?php
+					include_once 'app/Mage.php';
+					Mage::app();
+					Mage::getSingleton('core/session', array('name' => 'frontend'));
+					
+					
+					$_productCollection = Mage::getResourceModel('catalogsearch/advanced_collection')
+					->addAttributeToSelect(Mage::getSingleton('catalog/config')->getProductAttributes())
+					->addMinimalPrice()
+					->addStoreFilter();
+					$_productCollection->addAttributeToSelect('url_key');
+					
+					Mage::getSingleton('catalog/product_status')->addVisibleFilterToCollection($_productCollection);
+					Mage::getSingleton('catalog/product_visibility')->addVisibleInSearchFilterToCollection($_productCollection);
+					
+					
+					$todayDate = date('m/d/y');
+					$tomorrow = mktime(0, 0, 0, date('m'), date('d')+1, date('y'));
+					$tomorrowDate = date('m/d/y', $tomorrow);
+					
+					$_productCollection->addAttributeToFilter('special_from_date', array('date' => true, 'to' => $todayDate))
+					->addAttributeToFilter('special_to_date', array('or'=> array(
+					0 => array('date' => true, 'from' => $tomorrowDate),
+					1 => array('is' => new Zend_Db_Expr('null')))
+					), 'left');
+					
+					if (Mage::app()->getStore()->getCode() == 'wholesaledefault')
+{
+$_productCollection->addAttributeToFilter('iswholesale','1');
+}
+
+
+					
+					//The product Production :p
+					////////////////////
+					//CONTROL PANEL!
+					////////////////////
+					$numberOfColumns = 4;
+					$maxRows = 20;
+					$imageScale = 90;
+					$areaWidth = 885;
+					/////////////////////
+					// Create the style via control panel settings
+						$css = '';
+						$columnWidthPercentage = (1/$numberOfColumns)*100;
+						$paddingWidth = (($columnWidthPercentage/100)*$areaWidth)*0.05;
+						$fontSize = $paddingWidth*1.2;
+						$fontSizeLarge = $paddingWidth*2.2;
+						$css.= ".sale_products_table tr td {text-align:center; padding:".$paddingWidth."px; width:".$columnWidthPercentage."%;}" ;
+						$css.= ".sale_products_special {color:#E3861F; font-style:italic; font-weight:bold;font-size:".$fontSizeLarge."px;}" ;
+						$css.= ".sale_products_normal {text-decoration:line-through; font-weight:bold; font-size:".$fontSize."px;}" ;
+						$css.= ".sale_products_name {font-size:".$fontSize."px;}" ;
+						$css.= ".sale_products_buy {font-size:".$fontSize."px;}" ;
+						echo '<style type="text/css">';
+						echo $css;
+						echo '</style>';
+						$imagesize = ($columnWidthPercentage/100)*$areaWidth*($imageScale/100);
+						
+					///////////////////////////////////////////////
+					//Start the actual Table
+					echo '<table class="sale_products_table">';
+					/*
+					 * The row counter stops the collection
+					 * writer when it's more than the max
+					 * 
+					 * The column counter is used to see if a new row is needed
+					 */
+					$RowCounter = 1;
+					$ColumnCounter = 0;
+					//Need a starter row
+					echo '<tr>';
+						//Run through each product and determine it's starting and ending
+						//tag via row and column counters
+						foreach($_productCollection as $_product){
+							if($_product->getData('special_price')!=null){
+									//If we have written enough blocks for this row
+									//then end the last row and start another
+									if ($ColumnCounter == $numberOfColumns)
+									{
+										echo '</tr>';
+										echo '<tr>';
+										$ColumnCounter = 0;
+										$RowCounter += 1;
+										$newRowFlag = true;
+									}
+									//Don't write too much
+									if ($RowCounter <= $maxRows)
+									{
+										echo '<td>';
+										//Write the actual Block
+										echo '<a href="'.$baseUrl.$_product->getData('url_key').'.html">';
+										echo '<img src="'.$this->helper('catalog/image')->init($_product, 'thumbnail')->resize($imagesize).'" alt="'.$_product->getName().'" />';
+										echo '</a>';
+										echo '<div class="sale_products_name">';
+										echo $_product->getName().'<br />';
+										echo '</div>';
+										
+										$specialPrice = $_product->getData('special_price');
+										$orignalPrice = $_product->getData('price');
+										
+										echo '<div class="sale_products_normal">';
+										echo '$'.number_format($orignalPrice, 2)."<br/>";
+										echo '</div>';
+										echo '<div class="sale_products_special">';
+										echo '$'.number_format($specialPrice, 2)."<br/>";
+										echo '</div>';
+										echo '<div class="sale_products_buy">';
+										echo '<a href="'.$baseUrl.'checkout/cart/add?product='.$_product->getId().'&qty;=1">Add To Cart</a><br />';
+										echo '</div>';
+										
+										$ColumnCounter += 1;
+										//End block
+										echo '</td>';
+									}
+								
+							}
+						}
+						echo '</tr>';
+					echo '</table>';
+					?>
+
+                </div>
+            </div>
+        </div>
+        <?php echo $this->getChildHtml('footer') ?>
+        <?php echo $this->getChildHtml('before_body_end') ?>
+    </div>
+</div>
+<?php echo $this->getAbsoluteFooter() ?>
+</body>
+</html>

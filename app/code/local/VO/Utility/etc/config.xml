@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<config>
+	<!-- turn on our module, required for install support -->
+	<modules>
+		<VO_Utility>
+			<version>0.1.0</version>
+		</VO_Utility>
+	</modules>
+
+
+
+	<global>
+		<!-- turn on models -->
+		<models>
+			<utility>
+				<class>VO_Utility_Model</class>
+			</utility>
+		</models>
+
+		<!-- turn on database connections -->
+		<resources>
+			<utility_setup>
+				<setup>
+					<module>VO_Utility</module>
+				</setup>
+				<connection>
+					<use>core_setup</use>
+				</connection>
+			</utility_setup>
+			<utility_write>
+				<connection>
+					<use>core_write</use>
+				</connection>
+			</utility_write>
+			<utility_read>
+				<connection>
+					<use>core_read</use>
+				</connection>
+			</utility_read>
+		</resources>
+	</global>
+</config>

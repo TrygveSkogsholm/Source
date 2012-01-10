@@ -1,0 +1,163 @@
+<html version="-//W3C//DTD HTML 4.01 Transitional//EN">
+	<head>
+		<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js" type="text/javascript"></script>
+     	<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+		<link type="text/css" rel="Stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/themes/UI-Lightness/jquery-ui.css" />
+		<style type="text/css">
+			body {font:12px/1.5em Arial,Helvetica,sans-serif; overflow:scroll;}
+
+			table {width:100%; border-collapse:collapse;}
+
+			td
+			{
+				padding:3px; margin:5px;
+				border:1px solid #DADFE0;
+				font:12px/1.5em Arial,Helvetica,sans-serif;
+			}
+
+			thead tr {background:url(<?php echo $this->getSkinUrl('images/sort_row_bg.gif');?>) repeat-x scroll 0 50% transparent;}
+
+			th {
+			padding:3px; margin:5px;
+			font-size:12px;
+			text-align:left;
+			border:1px solid #DADFE0;
+
+			}
+
+			button {margin:5px; float:right;}
+
+			.qty {text-align:center; border-left:0px; font-weight:bold;}
+
+			.slider{width:50%; padding-right:14px; padding-left:14px; border-right:0px;}
+
+		</style>
+	</head>
+	<body>
+		<!-- Another peice of custom web work, all this thing needs to do is set the qtys of all order items
+		Because this is one of those damned thing that actually require a nice interface jQuery will be coming to the rescue.
+		The plan is to have jQuery assemble the JSON of all relavant modifications which will then be parsed by me wee controller.
+
+		The format of the JS object (and therefore the JSON) will be as follows.
+
+		Object - Order
+		{id : order ID}
+		{items:
+			[
+			{id:
+			localShipped
+			qtyShipped:
+			qtyTotal:
+			sku:
+			name:}
+			]
+		}
+		The generated json will be of the exact same format (except that there will be a element property for Jquery objects that will be deleted before saving)
+		, it is up to the php controller to decide what changes need to be made.
+		-->
+		<script type="text/javascript">
+		jQuery(document).ready(function(){
+				initialize();
+		 });
+		
+		var order = <?php echo $this->_itemsJson; ?>;
+		function initialize()
+		{
+			//Create and assign item JQ objects to the table
+			for (var i in order.items)
+			{
+				var item = $('<tr></tr>',{id:order.items[i].id});
+
+				//Activate the slider!
+				/*
+				**	The logic here is calculated in this way, the range must be qtyTotal - qtyShipped (since the local
+				** 	shipment cannot be shipped yet because you are editing this that qtyShipped represents all other shipments
+				**	with this po item in it.
+				**
+				**	The default value is localShipped
+				*/
+				var sliderElement = $("<div></div>");
+				order.items[i].slider =  sliderElement.slider(
+						{
+						value:order.items[i].localShipped,
+						min: 0,
+						max: (order.items[i].qtyTotal - order.items[i].qtyShipped),
+						slide: function( event, ui ) {
+							updateQty($(this),ui.value);
+						},
+						range: 'min'
+						}
+					);
+				item.append($('<td/>',{class:'slider'}).html(sliderElement));
+				item.append($('<td/>',{id: order.items[i].id + "amount",class:"qty"}).html(order.items[i].localShipped));
+
+				//sku
+				var sku = $('<td/>',{class:'sku'});
+				sku.html(order.items[i].sku);
+				item.append(sku);
+
+				//name
+				var name = $('<td/>',{class:'name'});
+				name.html(order.items[i].name);
+				item.append(name);
+
+				order.items[i].element = item;
+				$("tbody").append(item);
+			}
+
+			//Create save and exit button
+			$("table").after($("<button></button>",{id:'save'}).button({ label: "Save" }));
+			$("#save").before($("<button></button>",{id:'exit',onclick:"self.close()"}).button({ label: "Exit" }));
+			$("#exit").after($("<button></button>",{id:'all'}).button({ label: "Ship All" }));
+			$("#save").bind('click',function(event){
+				save();
+			});
+			$("#all").click(function(event){
+				shipAll();
+			});
+		}
+		function updateQty(div,qty)
+		{
+			//called by the sliders on slide. way of getting ID is stupid I know.
+			id = div.parent().parent().attr('id');
+			$("#"+id+"amount").html(qty);
+		}
+		function shipAll()
+		{
+			$(".ui-slider").each(function(index) {
+			   	$(this).slider("value",$(this).slider( "option", "max" ));
+			   	updateQty($(this),$(this).slider( "option", "max" ));
+			  });
+		}
+
+		function save()
+		{
+			for (var i in order.items)
+			{
+				delete order.items[i].element;
+				delete order.items[i].slider;
+				order.items[i].localShipped = $("#"+order.items[i].id+"amount").html();
+			}
+			$('#Json').val(JSON.stringify(order));
+			$('form').submit();
+		}
+		</script>
+		<div>
+		<h3>Please choose how many of the items from purchase order #<?php echo Mage::registry('order')->getId()?> should be in shipment #<?php echo Mage::registry('shipmentId'); ?>.</h3>
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Selector</th><th>Qty</th><th>Sku</th><th>Name</th>
+				</tr>
+			</thead>
+			<tbody>
+
+			</tbody>
+			<tfoot></tfoot>
+		</table>
+		<form action="<?php echo $this->getUrl('*/*/AJAXUpdateItems',array('shipment'=>Mage::registry('shipmentId'))); ?>" method="post"><input type="hidden" id="Json" name="json">
+			<input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" /> 
+		</form>
+	</body>
+</html>

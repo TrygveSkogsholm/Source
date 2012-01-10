@@ -1,0 +1,9 @@
+<span>Is Paid? </span><input type="checkbox" id="is_paid" name="is_paid" value="1" <?php echo ($this->getOrder()->getis_paid() == true)? 'checked="true"':''; ?>  />
+<br/>
+<span>Payment Method </span><input type="text" id="payment_method" name="payment_method" value="<?php echo $this->getOrder()->getpayment_method(); ?>"/>
+<br/>
+<span>Show Comments on PDF? </span><input type="checkbox" id="show_comments" checked="checked" name="show_comments" />
+<br/>
+<button style="" onclick="setLocation('<?php echo $this->getUrl('*/*/print',array('id'=>$this->getOrder()->getId()));?>?show_comments=' + $('show_comments').getValue())" class="scalable " type="button" id="print"><span>Print</span></button>
+<br/>
+<button style="" onclick="setLocation('<?php echo $this->getUrl('*/*/send',array('id'=>$this->getOrder()->getId()));?>')" class="scalable " type="button" id="send"><span>Send</span></button>

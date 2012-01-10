@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+	<acl>
+		<resources>
+			<all>
+				<title>Allow Everything</title>
+			</all>
+			<admin>
+				<children>
+					<purchase module="purchase">
+						<title>Purchase Module</title>
+						<sort_order>10</sort_order>
+						<children>
+							<orders module="purchase">
+								<title>Orders</title>
+								<sort_order>1</sort_order>
+							</orders>
+							<shipments module="purchase">
+								<title>Shipments</title>
+								<sort_order>2</sort_order>
+							</shipments>
+							<supplyneeds module="purchase">
+								<title>Supply Needs</title>
+								<sort_order>3</sort_order>
+							</supplyneeds>
+							<suppliers module="purchase">
+								<title>Suppliers</title>
+								<sort_order>0</sort_order>
+							</suppliers>
+							<hts module="purchase">
+								<title>HTS Table</title>
+								<sort_order>0</sort_order>
+							</hts>
+							<pricing module="purchase">
+								<title>Pricing</title>
+								<sort_order>5</sort_order>
+								<children>
+									<change module="purchase">
+										<title>Make Changes</title>
+										<sort_order>0</sort_order>
+									</change>
+									<history module="purchase">
+										<title>History</title>
+										<sort_order>1</sort_order>
+									</history>
+									<graph module="purchase">
+										<title>Graphs</title>
+										<sort_order>2</sort_order>
+									</graph>
+									<list module="purchase">
+										<title>List</title>
+										<sort_order>3</sort_order>
+									</list>
+								</children>
+							</pricing>
+						</children>
+					</purchase>
+					<system>
+						<children>
+							<config>
+								<children>
+									<orders>
+										<title>Purchase Orders Config</title>
+									</orders>
+									<restocking>
+										<title>Restocking Config</title>
+									</restocking>
+									<pricing>
+										<title>Pricing Config</title>
+									</pricing>
+									<terms>
+										<title>Terms</title>
+									</terms>
+								</children>
+							</config>
+						</children>
+					</system>
+
+				</children>
+			</admin>
+		</resources>
+	</acl>
+</config>

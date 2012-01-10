@@ -1,0 +1,11 @@
+<?php if (Mage::getStoreConfig('planning/quote_options/show_planning_in_cart') == 1): ?>
+<div class="shipping-estimate box">
+    <fieldset>
+    <h4><?php echo $this->__('Delivery date') ?></h4>
+    <p><?php echo $this->getDeliveryMsg(); ?></p>
+    <?php if (Mage::getStoreConfig('planning/quote_options/show_debug_in_cart') == 1): ?>
+	    <i><?php echo $this->getComments();?></i>
+	<?php endif; ?>
+    </fieldset>
+</div>
+<?php endif; ?>

@@ -1,0 +1,18 @@
+<?php
+$prediction = Mage::getModel('purchase/supplyneed_prediction_'.'linear',array('product_id'=>604));
+$prediction->curveFit();
+echo $prediction->getEquation();
+
+//echo Zend_Json::encode($prediction->generateData(1293861600,1325397600 ));
+
+//echo $prediction->getDefiniteIntegral(1293861600,1325397600);
+
+
+?>
+<!-- <a href="<?php echo $this->getUrl('*/price/new',array('plan_id'=>1))?>">Plan</a>
+<a href="<?php echo $this->getUrl('*/price/new',array('po_id'=>2312))?>">PO</a>
+<a href="<?php echo $this->getUrl('*/price/new',array('ship_id'=>15))?>">Ship</a>
+
+<p>A comapany, '.$model->getname().'; has submited an application to become a dealer in '.$model->getcity().'.</p>
+<p>They have '..' included electronic copies of their liability insurance and a re-sellers permit.</p>
+<span>You can access their application <a href="" >here</a>.</span> -->

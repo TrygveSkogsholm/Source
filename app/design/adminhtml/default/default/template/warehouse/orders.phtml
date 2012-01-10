@@ -1,0 +1,202 @@
+<!-- This page displays the list of orders which ought to be printed as well as those that shouldn't
+in the current range
+Style Sheet: -->
+<style type="text/css">
+
+#ranges
+{
+	font-size: 1.5em;
+}
+#notes
+{
+	height:70px;
+	overflow:auto;
+}
+
+.topDivs
+{
+	display:inline-block;
+	padding:6px;
+	width:40%;
+	vertical-align:text-top;
+	text-align:center;
+}
+
+#printAllDiv 
+{
+	display:inline-block;
+	padding:6px;
+	width:15%;
+	vertical-align:text-top;
+	text-align:center;
+}
+
+.topDivs ol
+{
+	list-style-type:upper-latin;
+}
+
+/* tables */
+table.tablesorter {
+	font-family:arial;
+	background-color: #CDCDCD;
+	margin:10px 0pt 15px;
+	font-size: 8pt;
+	width: 100%;
+	text-align: left;
+}
+table.tablesorter thead tr th, table.tablesorter tfoot tr th {
+	background-color: #e6EEEE;
+	border: 1px solid #FFF;
+	font-size: 8pt;
+	padding: 4px;
+}
+table.tablesorter thead tr .header {
+	background-image: url(bg.gif);
+	background-repeat: no-repeat;
+	background-position: center right;
+	cursor: pointer;
+}
+table.tablesorter tbody td {
+	color: #3D3D3D;
+	padding: 4px;
+	background-color: #FFF;
+	vertical-align: top;
+}
+table.tablesorter tbody tr.odd td {
+	background-color:#F0F0F6;
+}
+table.tablesorter thead tr .headerSortUp {
+	background-image: url(asc.gif);
+}
+table.tablesorter thead tr .headerSortDown {
+	background-image: url(desc.gif);
+}
+table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSortUp {
+background-color: #8dbdd8;
+}
+
+</style>
+
+<!-- Link to jQuery -->
+<script
+	src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js"
+	type="text/javascript"></script>
+<script
+	type="text/javascript"
+	src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link
+	type="text/css" rel="Stylesheet"
+	href="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.11/themes/start/jquery-ui.css" />
+<!-- No conflict, jQuery may not be called with $ but must be jQuery._____ -->
+<?php echo '<script type="text/javascript"src="'.$this->getJsUrl('jquery.tablesorter.js').'"</script>'; ?>
+<script type="text/javascript">
+  jQuery.noConflict();
+  // Code that uses other library's $ can follow here.
+</script>
+<script type="text/javascript">
+jQuery(document).ready(function()
+		{
+		jQuery('#orders').tablesorter
+		(
+		{
+			widgets: ['zebra'],
+			headers: {
+				5: {
+					sorter: false
+				}
+			}
+		});
+
+		jQuery('tbody tr').each(function()
+				{
+					jQuery(this).dblclick(function() 
+					{
+						window.open("<?php echo $this->getUrl('grandcru_admin/sales_order/view'); ?>"+"?order_id="+jQuery(this).attr('id'),'Order');
+					});
+				});
+		});
+
+
+</script>
+
+<?php 
+ini_set('memory_limit', '512M');
+$ranges = $this->getAndRenderRanges();
+Mage::getSingleton('core/session')->setData('ranges_to_print',$ranges);
+?>
+<div id="ranges" class="topDivs">
+<?php foreach($ranges as $range): ?>
+	<?php $limits = $range->getLimits(); ?>
+	<?php if(!empty($limits['start']['increment'])): ?>
+		<div><?php echo $limits['start']['increment'].' - '.$limits['end']['increment']; ?>  <button onClick="window.location = '<?php echo $this->getUrl('*/*/printOrders',array('range'=>$range->getId())); ?>'">Print Range</button><button onClick="window.location = '<?php echo $this->getUrl('*/*/printInvoices',array('range'=>$range->getId())); ?>'">Print Invoices</button></div>
+	<?php endif; ?>
+	<?php endforeach; ?>
+</div>
+<div class="topDivs" id="notes">
+	<ol class="FullList">
+	<?php foreach($ranges as $range): ?>
+		<?php foreach($range->notes as $note): ?>
+			<?php if ($note->isMissing()): ?>
+				<li><?php  echo $note->getNoteHtml(); ?></li>
+			<?php endif; ?>
+		<?php endforeach; ?>
+	<?php endforeach; ?>
+	</ol>
+</div>
+<div id="printAllDiv">
+	<button onClick="window.location = '<?php echo $this->getUrl('*/*/printOrders'); ?>?range=all'">Print All Orders</button>
+</div>
+
+<!-- Orders table, simply jquery table sorter with some links and popups -->
+<table class="tablesorter" id="orders">
+	<thead>
+		<tr>
+			<th>Order</th>
+			<th>Store</th>
+			<th>Email</th>
+			<th>Combined</th>
+			<th>Subtotal</th>
+			<th>Notes</th>
+		</tr>
+	</thead>
+	<tfoot></tfoot>
+	<tbody>
+		<?php foreach ($ranges as $range): ?>
+			<?php foreach ($range->getOrders() as $orderGroup): ?>
+				<?php 
+					if (count($orderGroup) > 1)
+					{
+						$combined = 'Yes';
+					}
+					else
+					{
+						$combined = 'No';
+					}
+				?>
+				<?php foreach ($orderGroup as $id => $order): ?>
+					<tr id="<?php echo $id; ?>">
+						<td class="orderNum"><?php echo $order['increment']; ?></td>
+						<td><?php echo ($order['group'] > 1)?'VOI':'VO'; ?></td>
+						<td><?php echo $order['email']; ?></td>
+						<td><?php echo $combined; ?></td>
+						<td><?php echo Mage::helper('core')->currency($order['subtotal']); ?></td>
+						<td>
+						<ul>
+						<?php 
+							foreach ($range->notes as $note)
+							{
+								if ($note->getPrintId() == $id)
+								{
+									echo '<li>'.$note->getNoteHtml().'</li>';
+								}
+							}
+						?>
+						</ul>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			<?php endforeach; ?>
+		<?php endforeach; ?>
+	</tbody>
+</table>

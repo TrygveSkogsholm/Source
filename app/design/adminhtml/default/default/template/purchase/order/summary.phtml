@@ -1,0 +1,158 @@
+<?php
+$order = $this->getOrder();
+$from = $order->getAddress('from');
+$to = $order->getAddress('to');
+$directoryBlock = $this->getLayout()->createBlock('Mage_Directory_Block_Data','country-selector-block');
+$supplier = $order->getSupplier();
+?>
+
+<script src="http://cdn.jquerytools.org/1.2.5/jquery.tools.min.js"></script>
+<!-- <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.4.4.js" type="text/javascript"></script>-->
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link type="text/css" rel="Stylesheet" href="http://ajax.microsoft.com/ajax/jquery.ui/1.8.5/themes/smoothness/jquery-ui.css" />
+<script type="text/javascript">
+  jQuery.noConflict();
+  // Code that uses other library's $ can follow here.
+</script>
+
+<style>
+.po-header {
+	width: 100%;
+	font-size: 1.3em;
+	font-weight: bold;
+	text-align: center;
+	border-bottom: 2px dashed #DFDFDF;
+	padding-bottom: 5px;
+}
+
+.po-header td {
+	border: 1px solid #DFDFDF
+}
+
+.po-address {
+	width: 100%;
+	border: 1px solid #DFDFDF;
+	margin-top: 5px;
+	border-collapse: collapse;
+}
+
+.po-address th {
+	color: white;
+	padding: 0.2em;
+	padding-left: 1em;
+}
+
+.po-address .row td input {
+	width: 274px;
+	margin: 0.3em;
+}
+
+.po-address .row td label {
+	width: 140px;
+	float: left;
+	margin: 0.3em;
+	color: #333333;
+}
+
+.po-address .row td select {
+	margin: 0.3em;
+	width: 274px;
+}
+</style>
+
+<table class="po-header">
+	<tr>
+		<td><span><?php echo $supplier->getName(); ?></span></td>
+		<td><span><?php echo $order->Status('label'); ?></span></td>
+		<td><span><?php echo $order->getdate_created(); ?></span></td>
+	</tr>
+</table>
+
+<table class="po-address">
+	<tr class="entry-edit-head">
+		<th>Ship From</th>
+		<th>Ship To</th>
+	</tr>
+	<tr class="row">
+		<td class="fieldset"><label>Company Name</label> <input id="from-name"
+			name="from-name" type="text" value="<?php echo $from['name']?>"><br />
+
+		<label for="from-contact">Contact</label> <input id="from-contact"
+			name="from-contact" type="text" value="<?php echo $from['contact']?>"><br />
+
+
+		<label for="from-address1">Address Line 1</label> <input
+			id="from-address1" name="from-address1" type="text"
+			value="<?php echo $from['street1']?>"><br />
+		<label>Address Line 2</label> <input id="from-address2"
+			name="from-address2" type="text"
+			value="<?php echo $from['street2']?>"><br />
+		<label>City</label> <input id="from-city" name="from-city" type="text"
+			value="<?php echo $from['city']?>"><br />
+		<label>Zip/Postal Code</label> <input id="from-zip" name="from-zip"
+			type="text" value="<?php echo $from['zip']?>"><br />
+		<label>Country</label> <?php
+		echo $directoryBlock->getCountryHtmlSelect($from['country'],'from-country','from-country').'<br/>';
+		//echo $directoryBlock->getRegionHtmlSelect();
+		?> <label>State/Region</label> <select id="from-state"
+			name="from-state">
+			<option>Please Select an Option</option>
+		</select> <script type="text/javascript">
+                        //<![CDATA[
+                            $('from-state').setAttribute('defaultValue',  "<?php echo $from['state']; ?>");
+                        //]]>
+                        </script> <input type="text" id="from-region"
+			name="from-region" value="<?php echo $from['state']?>"
+			title="State/Province" class="input-text" style="display: none;" /></td>
+		<td class="fieldset"><label>Company Name</label> <input id="to-name"
+			name="to-name" type="text" value="<?php echo $to['name']?>"><br />
+
+		<label for="to-contact">Contact</label> <input id="to-contact"
+			name="to-contact" type="text" value="<?php echo $to['contact']?>"><br />
+
+
+		<label>Address Line 1</label> <input id="to-address1"
+			name="to-address1" type="text" value="<?php echo $to['street1']?>"><br />
+		<label>Address Line 2</label> <input id="to-address2"
+			name="to-address2" type="text" value="<?php echo $to['street2']?>"><br />
+		<label>City</label> <input id="to-city" name="to-city" type="text"
+			value="<?php echo $to['city']?>"><br />
+		<label>Zip/Postal Code</label> <input id="to-zip" name="to-zip"
+			type="text" value="<?php echo $to['zip']?>"><br />
+
+		<label>Country</label> <?php
+		echo $directoryBlock->getCountryHtmlSelect($to['country'],'to-country','to-country').'<br/>';
+		//echo $directoryBlock->getRegionHtmlSelect();
+		?> <label>State/Region</label> <select id="to-state" name="to-state">
+			<option>Please Select an Option</option>
+		</select> <script type="text/javascript">
+                        //<![CDATA[
+                            $('to-state').setAttribute('defaultValue',  "<?php echo $to['state']; ?>");
+                        //]]>
+                        </script> <input type="text" id="to-region"
+			name="to-region" value="<?php echo $to['state']?>"
+			title="State/Province" class="input-text" style="display: none;" /></td>
+	</tr>
+</table>
+
+<script type="text/javascript">
+			//<![CDATA[
+			    new RegionUpdater('from-country', 'from-region', 'from-state', <?php echo $this->helper('directory')->getRegionJson() ?>, undefined);
+			    new RegionUpdater('to-country', 'to-region', 'to-state', <?php echo $this->helper('directory')->getRegionJson() ?>, undefined);
+			//]]>
+
+			/*<?php if($order->Status() > 1):?>
+			    $$('input').each(function(e){
+			        e.disable();
+			    });
+
+			    $$('select').each(function(e){
+			        e.disable();
+			    });
+			<?php endif;?>*/
+
+</script>
+<div class="entry-edit-head"
+	style="color: white; padding: 0.2em; padding-left: 1em; font-weight:bold;">Order Comments</div>
+<div class="fieldset"><textarea name="comments" id="comments"
+	style="width: 90%; height: 100px; margin: 5px;"><?php echo $order->getOrderComments(); ?></textarea></div>

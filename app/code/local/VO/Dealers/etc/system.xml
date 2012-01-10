@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<config>
+	<tabs>
+		<dealers translate="label" module="dealers">
+			<label>Dealers</label>
+			<sort_order>99999</sort_order>
+		</dealers>
+	</tabs>
+	<sections>
+		<application translate="label" module="dealers">
+			<label>Sign-Up</label>
+			<tab>dealers</tab>
+			<frontend_type>text</frontend_type>
+			<sort_order>1000</sort_order>
+			<show_in_default>1</show_in_default>
+			<show_in_website>1</show_in_website>
+			<show_in_store>1</show_in_store>
+			<groups>
+				<notification translate="label">
+					<label>Notification</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<email translate="label">
+							<label>Email</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_yesno</source_model>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>Send email upon dealer application.</comment>
+						</email>
+						<recipient translate="label">
+							<label>Email Recipient</label>
+							<frontend_type>text</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_email_address</backend_model>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</recipient>
+						<fax translate="label">
+							<label>Fax</label>
+							<frontend_type>text</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</fax>
+					</fields>
+				</notification>
+				<view translate="label">
+					<label>Sign-Up Page View</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<document_note translate="label">
+							<label>Documentation Note</label>
+							<frontend_type>textarea</frontend_type>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+							<comment>The note underneath the request for liability etc..
+							include [email] and [fax] to have those in the comment</comment>
+						</document_note>
+					</fields>
+				</view>
+			</groups>
+		</application>
+		<display>
+			<label>Locator</label>
+			<tab>dealers</tab>
+			<frontend_type>text</frontend_type>
+			<sort_order>1040</sort_order>
+			<show_in_default>1</show_in_default>
+			<show_in_website>1</show_in_website>
+			<show_in_store>1</show_in_store>
+			<groups>
+				<data translate="label">
+					<label>Fields to Display</label>
+					<frontend_type>text</frontend_type>
+					<sort_order>1</sort_order>
+					<show_in_default>1</show_in_default>
+					<show_in_website>1</show_in_website>
+					<show_in_store>1</show_in_store>
+					<fields>
+						<email translate="label">
+							<label>Show Email</label>
+							<frontend_type>select</frontend_type>
+							<source_model>adminhtml/system_config_source_yesno</source_model>
+							<sort_order>2</sort_order>
+							<show_in_default>1</show_in_default>
+							<show_in_website>1</show_in_website>
+							<show_in_store>1</show_in_store>
+						</email>
+					</fields>
+				</data>
+			</groups>
+		</display>
+	</sections>
+</config>

@@ -1,0 +1,39 @@
+<?php 	/*
+* Alright this part is complicated, and I wasted a good amount of time trying to get the widget grid to
+* post the data I wanted.
+*
+* I am going to be using a javascript sub-module (located in this addProducts.phtml) to handle the
+* selection and data capture (still from a grid though, using special renderers).
+*
+* The JS will update an input field in real time with a string with the neccesary data (Yes I am going to make up
+* the format myself)
+*
+* Then when the whole darn thing is saved (I might just stick another save button with the 'add these products' or something)
+* the controller will use a decoding function found in the helper to use the generic add product to supplier function found in the
+* supplier model...
+*
+* User -> template JS -> template post string -> controller -> helper decode string to php array -> controller -> use supplier instance to save array.
+*/ ?>
+
+<input type=hidden name="dataString" id="dataString" value="" />
+<script type="text/javascript">
+var datastring = document.getElementById("dataString");
+
+function check(id)
+{
+	var checkbox = document.getElementById(id + "_add");
+	if (checkbox.checked == true)
+	{
+		document.getElementById(id + "_model").disabled = false;
+		document.getElementById(id + "_firstcost").disabled = false;
+		datastring.value += id+",";
+	}
+	else
+	{
+		document.getElementById(id + "_model").disabled = true;
+		document.getElementById(id + "_firstcost").disabled = true;
+		datastring.value = datastring.value.replace(id+",","");
+
+	}
+}
+</script>

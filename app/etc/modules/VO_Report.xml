@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <VO_Report>
+            <active>true</active>
+            <codePool>local</codePool>
+        </VO_Report>
+    </modules>
+</config> 

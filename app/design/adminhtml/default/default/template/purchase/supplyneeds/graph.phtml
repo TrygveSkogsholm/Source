@@ -1,0 +1,166 @@
+<script type="text/javascript"
+	src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link
+	type="text/css" rel="Stylesheet"
+	href="http://ajax.microsoft.com/ajax/jquery.ui/1.8.5/themes/smoothness/jquery-ui.css" />
+<script type="text/javascript">
+	//This is an easy way to use php variables in analysis.js
+	window.info = 
+	{
+			getSkuDataUrl:"<?php echo $this->getUrl('*/*/getSkuData'); ?>",
+			getAggregateSeriesUrl:"<?php echo $this->getUrl('*/*/getAggregateSeries'); ?>",
+			getPlainSeriesUrl:"<?php echo $this->getUrl('*/*/getPlainSeries'); ?>",
+			getPredictionUrl:"<?php echo $this->getUrl('*/*/getPredictedData') ?>",
+			autocomplete:<?php echo $this->getSkuOptions(); ?>,
+			eye_open_url:"<?php echo $this->getSkinUrl('images/eye.png'); ?>",
+			eye_closed_url:"<?php echo $this->getSkinUrl('images/eye01_closed.png'); ?>",
+			download_csv_url:"<?php echo $this->getUrl('*/*/downloadCSV'); ?>"
+	};
+</script>
+<style type="text/css">
+.control-panel {
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+.control-title {
+	font-size: 1.4em;
+	padding: 5px;
+}
+
+#list {
+	margin-left: 80%;
+}
+
+#left-column {
+	float: left;
+	width: 80%;
+}
+
+#chart-area {
+	margin-bottom: 3px;
+}
+
+/*
+List Stuff
+*/
+.sku {
+	vertical-align: center;
+}
+
+.child {
+	margin-left: 25px;
+}
+
+.eye {
+	
+}
+
+.color {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 1px solid #ccc;
+	margin-right: 2px;
+	margin-left: 2px;
+}
+
+.label {
+	font-size: 12pt;
+	font-weight: bold;
+	color: #545454;
+	display: inline-block;
+}
+
+/*
+Control stuff
+*/
+.checkboxes {
+	
+}
+
+.parent-subselection {
+	float: right;
+	width: 50%;
+	height: 162px;
+}
+
+.dataTypeHighlight {
+	background: yellow;
+}
+
+#control-template {
+	display: none;
+}
+
+#table-container {
+	clear: both;
+}
+
+#table-container table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+#table-container table td,th {
+	border: 1px solid grey;
+	padding: 3px;
+}
+</style>
+
+<div id="left-column">
+	<div id="chart-area" style="height: 300px"></div>
+	<input type="text" id="from" name="from" /> <input type="text" id="to"
+		name="to" /> <select id="group-select"
+		onChange="graphAggregation = this.options[this.selectedIndex].value; graphData();">
+		<option value="none">Exact</option>
+		<option value="day">Day</option>
+		<option value="week">Week</option>
+		<option value="2week">Two Weeks</option>
+		<option SELECTED value="month">Month</option>
+		<option value="quarter">Quarter</option>
+		<option value="year">Year</option>
+		<option value="lifetime">Lifetime</option>
+	</select> <select id="display-select" onChange="graphData();">
+		<option value="lines">Lines</option>
+		<option value="bars">Bars</option>
+		<option value="none">None</option>
+	</select> <input id="show-points" type="checkbox" value="points"
+		onChange="graphData();"><label for="show-points">Show points</label>
+	<div id="control-container"></div>
+</div>
+<input type="text" id="newSku" />
+<ul id="list">
+</ul>
+
+<div id="table-container"></div>
+
+<!-- Control Template -->
+<div id="control-template" class="control-panel ui-widget">
+	<div class="control-title ui-widget-header"></div>
+	<div class="ui-widget-content">
+		<select id="target-select" title="Analysis Target Periods">
+			<option value="day">Day</option>
+			<option value="week">Week</option>
+			<option value="2week">Two Weeks</option>
+			<option SELECTED value="month">Month</option>
+			<option value="quarter">Quarter</option>
+			<option value="year">Year</option>
+		</select> 
+		<select id="model-select" title="Mathematic Model">
+			<option value="linear">y = mx + b [Linear]</option>
+			<option value="cyclicgrowth">y = mx + b + Asin(Bx-C) [Cyclic-growth]</option>
+		</select> 
+		<input class="projection" name="projection" ><label for="projection" title="always in units of target">Projection time</label>
+	</div>
+</div>
+
+<button onClick="downloadCsv()">Download Csv</button>
+
+<form action="<?php echo $this->getUrl('*/*/downloadCSV'); ?>"
+	method="post" id="csvForm">
+	<input name="form_key"
+		value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		type="hidden">
+	<textarea style="display: none;" id="csvData" name="csvdata" />
+</form>

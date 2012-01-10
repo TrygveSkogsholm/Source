@@ -1,0 +1,11 @@
+<ul>
+<?php
+	if($files = Mage::registry('dealers_data')->getFiles()):
+		foreach ($files as $file):
+?>
+<li><a href="<?php echo  $file['path']?>" target="blank"><?php echo $file['name']?></a></li>
+<?php
+		endforeach;
+	endif;
+?>
+</ul>

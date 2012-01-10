@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!-- /** * @category VO * @package VO_Warehouse * @author ModuleCreator * 
+	@license http://opensource.org/licenses/osl-3.0.php Open Software License 
+	(OSL 3.0) */ -->
+<config>
+	<modules>
+		<VO_Warehouse>
+			<version>0.1.0</version>
+		</VO_Warehouse>
+	</modules>
+	<admin>
+		<routers>
+			<warehouse>
+				<use>admin</use>
+				<args>
+					<module>VO_Warehouse</module>
+					<frontName>warehouse</frontName>
+				</args>
+			</warehouse>
+		</routers>
+	</admin>
+	<adminhtml>
+		<menu>
+			<warehouse module="warehouse">
+				<title>Warehouse</title>
+				<sort_order>71</sort_order>
+				<children>
+					<orders module="warehouse">
+						<title>Print Orders</title>
+						<sort_order>0</sort_order>
+						<action>warehouse/adminhtml_order</action>
+					</orders>
+					<ranges module="warehouse">
+						<title>Order Ranges</title>
+						<sort_order>1</sort_order>
+						<action>warehouse/adminhtml_range</action>
+					</ranges>
+					<warehouse_tools module="warehouse">
+						<title>Tools</title>
+						<children>
+							<stock module="warehouse">
+								<title>Labels</title>
+								<sort_order>2</sort_order>
+								<action>warehouse/adminhtml_stock</action>
+							</stock>
+							<inventory module="warehouse">
+								<title>Inventory</title>
+								<sort_order>2</sort_order>
+								<action>warehouse/adminhtml_stock/inventory</action>
+							</inventory>
+						</children>
+					</warehouse_tools>
+				</children>
+			</warehouse>
+			<catalog>
+				<children>
+					<mass_stock_editor translate="title" module="warehouse">
+						<title>Mass Stock Editor</title>
+						<sort_order>1100</sort_order>
+						<action>warehouse/tools/massstockeditor</action>
+					</mass_stock_editor>
+				</children>
+			</catalog>
+		</menu>
+		<acl>
+			<resources>
+				<all>
+					<title>Allow Everything</title>
+				</all>
+				<admin>
+					<children>
+						<warehouse module="warehouse">
+							<title>Warehouse Module</title>
+							<sort_order>71</sort_order>
+							<children>
+								<orders module="warehouse">
+									<title>Print Orders</title>
+									<sort_order>0</sort_order>
+								</orders>
+								<ranges module="warehouse">
+									<title>Order Ranges</title>
+									<sort_order>1</sort_order>
+								</ranges>
+								<warehouse_tools module="warehouse">
+									<title>Tools</title>
+									<children>
+										<stock module="warehouse">
+											<title>Labels</title>
+											<sort_order>2</sort_order>
+										</stock>
+										<inventory module="warehouse">
+											<title>Inventory</title>
+											<sort_order>2</sort_order>
+										</inventory>
+									</children>
+								</warehouse_tools>
+							</children>
+						</warehouse>
+						<system>
+							<children>
+								<config>
+									<children>
+										<warehouse_orders>
+											<title>Warehouse Orders Config</title>
+										</warehouse_orders>
+									</children>
+								</config>
+							</children>
+						</system>
+					</children>
+				</admin>
+			</resources>
+		</acl>
+		<layout>
+			<updates>
+				<warehouse>
+					<file>warehouse.xml</file>
+				</warehouse>
+			</updates>
+		</layout>
+	</adminhtml>
+	<global>
+		<models>
+			<warehouse>
+				<class>VO_Warehouse_Model</class>
+				<resourceModel>warehouse_mysql4</resourceModel>
+			</warehouse>
+			<warehouse_mysql4>
+				<class>VO_Warehouse_Model_Mysql4</class>
+				<entities>
+					<range>
+						<table>warehouse_range</table>
+					</range>
+					<print>
+						<table>warehouse_print</table>
+					</print>
+					<note>
+						<table>warehouse_note</table>
+					</note>
+				</entities>
+			</warehouse_mysql4>
+		</models>
+		<resources>
+			<warehouse_setup>
+				<setup>
+					<module>VO_Warehouse</module>
+				</setup>
+				<connection>
+					<use>core_setup</use>
+				</connection>
+			</warehouse_setup>
+			<warehouse_write>
+				<connection>
+					<use>core_write</use>
+				</connection>
+			</warehouse_write>
+			<warehouse_read>
+				<connection>
+					<use>core_read</use>
+				</connection>
+			</warehouse_read>
+		</resources>
+		<blocks>
+			<warehouse>
+				<class>VO_Warehouse_Block</class>
+			</warehouse>
+		</blocks>
+		<helpers>
+			<warehouse>
+				<class>VO_Warehouse_Helper</class>
+			</warehouse>
+		</helpers>
+	</global>
+
+	<default>
+		<warehouse_orders>
+			<notes>
+				<large_definition>1000</large_definition>
+			</notes>
+		</warehouse_orders>
+	</default>
+</config>

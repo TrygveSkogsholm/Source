@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<!-- /** * @category VO * @package VO_Report * @author ModuleCreator * @license 
+	http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0) 
+	*/ -->
+<config>
+	<modules>
+		<VO_Report>
+			<version>0.1.0</version>
+		</VO_Report>
+	</modules>
+	<admin>
+		<routers>
+			<report>
+				<use>admin</use>
+				<args>
+					<module>VO_Report</module>
+					<frontName>report</frontName>
+				</args>
+			</report>
+		</routers>
+	</admin>
+	<adminhtml>
+		<menu>
+			<report translate="title" module="report">
+				<children>
+					<complete_sales module="report">
+						<title>Complete Sales</title>
+						<sort_order>191</sort_order>
+						<action>report/report</action>
+					</complete_sales>
+				</children>
+			</report>
+		</menu>
+		<acl>
+			<resources>
+				<all>
+					<title>Allow Everything</title>
+				</all>
+				<admin>
+					<children>
+						<report module="report">
+							<sort_order>71</sort_order>
+							<children>
+								<complete_sales module="report">
+									<title>Complete Sales</title>
+									<sort_order>0</sort_order>
+								</complete_sales>
+							</children>
+						</report>
+						<system>
+							<children>
+								<config>
+									<children>
+										<report_orders>
+											<title>Complete Sales Config</title>
+										</report_orders>
+									</children>
+								</config>
+							</children>
+						</system>
+					</children>
+				</admin>
+			</resources>
+		</acl>
+		<!--<layout> <updates> <report> <file>report.xml</file> </report> </updates> 
+			</layout> -->
+	</adminhtml>
+	<global>
+		<models>
+			<report>
+				<class>VO_Report_Model</class>
+			</report>
+		</models>
+
+		<resources>
+			<report_setup>
+				<setup>
+					<module>VO_Report</module>
+				</setup>
+				<connection>
+					<use>core_setup</use>
+				</connection>
+			</report_setup>
+			<report_write>
+				<connection>
+					<use>core_write</use>
+				</connection>
+			</report_write>
+			<report_read>
+				<connection>
+					<use>core_read</use>
+				</connection>
+			</report_read>
+		</resources>
+
+		<blocks>
+			<report>
+				<class>VO_Report_Block</class>
+			</report>
+		</blocks>
+
+		<helpers>
+			<report>
+				<class>VO_Report_Helper</class>
+			</report>
+		</helpers>
+	</global>
+</config>

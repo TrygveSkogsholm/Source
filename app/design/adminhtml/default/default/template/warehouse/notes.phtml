@@ -1,0 +1,8 @@
+<ol>
+<?php 
+foreach ($this->getNotes() as $note)
+{
+	echo '<li>'.$note->getNoteHtml().'</li>';
+}
+?>
+</ol>

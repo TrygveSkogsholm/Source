@@ -1,0 +1,917 @@
+<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.7/jquery-ui.js"></script>
+<link type="text/css" rel="Stylesheet" href="http://ajax.microsoft.com/ajax/jquery.ui/1.8.5/themes/smoothness/jquery-ui.css" />
+<script type="text/javascript">
+jQuery.noConflict();
+</script>
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<!-- <script type="text/javascript" src="<?php echo $this->getJsUrl('vo/purchase/supplyneeds/analysis.js'); ?>"></script> -->
+<script type="text/javascript">
+/*
+ Some basic information on the game plan:
+
+	 The idea behind this javascript is in theory simple. We will ask the server for various information on
+	 one or more skus, the server will return raw data (for the most part) from a sql query, we will not typically
+	 do data manipulation with the SQL like group by, but those functions will exist in here under aggregate action URL's
+	 in case future modification warrants it. Such functions will be noted by comments.
+
+	 Normally we will abstract the data in to JS objects (abstraction section), with those abstracions we will
+	 manipulate the data (group by, date range etc...) with google visualization datatable tools. This may be slower than sql
+	 but it saves a lot of work in sorting and other areas, it also saves server calls so for many cases may be faster itself.
+
+	 To illustrate a problem encountered with grouping with the SQL on the server, the 'period' field returned is a string
+	 and the correct sorting of 'October 2011' is a lot more difficult than the built in date sorting.
+
+	 The data will exist in essentialy two layers on this page, the full data and the google datatables
+	 The abstractions main two objects are productSale and parentProduct. Full data refers to the JSON returned
+	 by the server controller and is stored in productSale.data. datatable refers to an actual google visualization
+	 datatable object, and is also stored as productSale.dataTable.
+
+	 Although the datatable could be constructed straight from the server with the accepted JSON form of the data
+	 it will not be because that would again be more sql calls than neccesary and we are collecting more data than
+	 will be shown in one table. Instead the datatable will be constructed from the data itself locally.
+
+	 The abstractions will be responsbile for asking the server for data themselves when called upon to do so. 
+	 Another layer refered to as the 'main controller' will trigger the appropriate updates upon passive user input
+	 (passive meaning applicable to existing objects but not triggered specificaly within their context).
+
+	 There are 6 'chapters' to this script:
+	 
+	 1. Globals and Initializations
+			Self explanitory.
+	 2. Main Controller
+	 		Contains functions which coordinate updates and visual changes for 'passive' user input, i.e.
+	 		changing date range. Characterized by user input like changing dependant fields and settings.
+	 3. Google Visualization
+	 		Functions which interface between the abstraction and the google visualization api script
+	 4. Controls and List
+	 		Entry functions designed to compliment the main controller, updates specific sections of the code
+	 		i.e. selecting a sku, adding a sku to 'consideration' (instanciating it as an abstraction), changing the
+	 		chart type, exporting data etc.. Characterizd by direct user input like clicking and buttons.
+	 5. Abstraction
+	 		The reproduction of pertinent data, mainly products and their data and functions. Most of the meat
+	 		is in this area.
+	 6. Utility
+	 		These are simply functions that save lines in the other areas and provide a neat access and unviersal
+	 		modification.
+ */
+
+/* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ * ::::::::::: Globals and Initializations :::::::::::::::
+ * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ */
+ var chartType = 'timeline';
+ var chart;
+ var tableChart;
+ var data;
+ var liveData;
+ var products = new Object();
+ var log = new Array();
+ google.load("visualization", "1", {packages:["table","annotatedtimeline","corechart"]});
+ google.setOnLoadCallback
+ (
+		 function()
+		 {
+				data = new google.visualization.DataTable();
+				data.addColumn('date','Period','period');
+		 }
+  );
+
+
+jQuery(document).ready(function()
+		{
+			//Add Sku autocomplete
+			jQuery('#newSku').autocomplete
+			({
+				source: <?php echo $this->getSkuOptions(); ?>,
+				minLength: 2,
+				select:function(event,ui)
+				{
+					event.preventDefault();
+					addSku(ui.item.value);
+				}
+			});
+
+			var dates = jQuery( "#from, #to" ).datepicker({
+				defaultDate: "-1m",
+				changeMonth: true,
+				numberOfMonths: 1,
+				onSelect: function( selectedDate ) {
+					var option = this.id == "from" ? "minDate" : "maxDate",
+						instance = jQuery( this ).data( "datepicker" ),
+						date = jQuery.datepicker.parseDate(
+							instance.settings.dateFormat ||
+							jQuery.datepicker._defaults.dateFormat,
+							selectedDate, instance.settings );
+					dates.not( this ).datepicker( "option", option, date );
+					analysisUpdate('date');
+				}
+			});
+		});
+
+ /* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  * :::::::::::::::::: Main Controller ::::::::::::::::::::
+  * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  */
+function analysisUpdate(type)
+{
+	_addLog('Calculating needed changes.');
+	/*
+	Depending on what is updated we need to change different things. If we change group by or date ranges we need
+	to grab everything again :(
+	Merely adding skus do not require this, sometimes extra data is also requested via children and prediction requests.
+	*/
+
+	//A date type is the most fundamental, and requires a re-requesting of all items
+	switch(type)
+	{
+		case 'date':
+			filterDate();
+			
+		break;
+		case 'grouping':
+			prepareDataTable([]);
+			break;
+		case 'chart':
+			chartType = jQuery('#chart-type').val();
+			if(chart)
+			{
+				drawChart(liveData);
+			}
+			break;
+		default:
+	}
+}
+
+ /* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  * ::::::::::::: Google Visualization ::::::::::::::::::::
+  * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  */
+function drawChart(localData)
+{
+	_addLog('Drawing Chart.');
+	title = "Sales";
+    //chart
+    switch(chartType)
+    {
+    case 'timeline':
+    	chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart'));
+    	google.visualization.events.addListener(chart, 'rangechange',updatejQueryDates);;
+        chart.draw(localData, {displayAnnotations: true});  
+    	break;
+    case 'scatter':
+    	chart = new google.visualization.ScatterChart(document.getElementById('chart'));
+    	chart.draw(localData, {width: 1200, height: 500, title: title,lineWidth:1,curveType:'function'});
+        break;
+        default:
+    }
+}
+
+function drawTable(localData)
+{
+	_addLog('Drawing Table');
+    //table
+    tableChart = new google.visualization.Table(document.getElementById('table_div'));
+    tableChart.draw(localData, {showRowNumber: true});
+}
+
+function prepareDataTable(tables)
+{
+	_addLog('Manipulating data for display in chart and table.');
+	/*
+	This function is pretty simple, it takes the raw data from any number of data tables and
+	performs neccesary functions to add it to the master. Grouping, joining, and date limiting are the common suspects.
+
+	It returns a single data table and sets the global data variable. If parameters change like grouping
+	or dates it is not neccesary to ask all the products for their info again, call this function with an empty
+	array and it will modify the global data.
+	*/
+	
+	for (i=0;i<tables.length;i++)
+	{
+		var indicies = new Array();
+		data.B.forEach(function(value,index){indicies.push(index);});
+		indicies.splice(0, 1);
+		data = google.visualization.data.join(data, tables[i], 'full', [[0,0]],indicies,[1]);
+	}
+
+	groupBy = getCurrentGroupby();
+	//Group data
+
+		//calculate columns argument
+		var columns = new Array();
+		var indicies = new Array();
+		data.B.forEach(function(value,index){indicies.push(index);});
+		indicies.splice(0, 1);
+		for(y=0;y<indicies.length;y++)
+		{
+			columns.push({'column': indicies[y], 'aggregation': google.visualization.data.sum, 'type': 'number'});
+		}
+
+		//calculate keys, periods, and formating. 
+		//To 'fill in' blank time periods simply add empty rows for each relavant period, aggregate sum will return zero.
+		var keys;
+		switch (groupBy.group)
+		{
+		case 'none':
+			keys = [{column:0, modifier:Grouping.none, type:'date', label:'Date'}];
+			var localData = google.visualization.data.group(data, keys, columns);
+			break;
+		case 'day':
+			keys = [{column:0, modifier:Grouping.day, type:'date', label:'Period'}];
+			var localData = fillDates(data,'day');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'day',isMultiyear(localData));
+			break;
+		case 'week':
+			keys = [{column:0, modifier:Grouping.week, type:'date', label:'Period'}];
+			var localData = fillDates(data,'week');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'week',isMultiyear(localData));
+			break;
+		case '2week':
+			keys = [{column:0, modifier:Grouping.twoWeek, type:'date', label:'Period'}];
+			var localData = fillDates(data,'2week');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'2week',isMultiyear(localData));
+			break;
+		case 'month':
+			keys = [{column:0, modifier:Grouping.month, type:'date', label:'Period'}];
+			var localData = fillDates(data,'month');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'month',isMultiyear(localData));
+			break;
+		case 'quarter':
+			keys = [{column:0, modifier:Grouping.quarter, type:'date', label:'Period'}];
+			var localData = fillDates(data,'quarter');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'quarter',isMultiyear(localData));
+			break;
+		case 'year':
+			keys = [{column:0, modifier:Grouping.year, type:'date', label:'Period'}];
+			var localData = fillDates(data,'year');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'year',isMultiyear(localData));
+			break;
+		default:
+			keys = [{column:0, modifier:Grouping.month, type:'date', label:'Period'}];
+			var localData = fillDates(data,'month');
+			localData = formatData(google.visualization.data.group(localData, keys, columns),'month',isMultiyear(localData));
+		}
+		
+		drawTable(localData);
+		drawChart(localData);
+		filterDate();
+		_addLog('Saving live data');
+		liveData = localData;
+}
+
+function getDateExtents(table)
+{
+	_addLog('Calculating relevant time period.');
+	table.sort(0);
+	/*
+	It's sorted in acending order, so that the last row is the latest, and the first is the earliest.
+	First is always row 0, last is get number of rows - 1
+	*/
+	return {earliest:table.getValue(0,0),latest:table.getValue(table.getNumberOfRows()-1,0)};
+}
+
+function getIntervals(startDate,endDate,unit)
+{
+	var intervalMS;
+	var dates = new Array();
+	switch(unit)
+	{
+	case 'day':
+		var localDate = new Date(startDate.getTime());
+		while(localDate <= endDate)
+		{
+			dates.push(new Date(localDate.getTime()));
+			localDate.setDate(localDate.getDate() + 1);
+		}
+		return dates;
+		break;
+	case 'week':
+		intervalMS = 604800000;
+		break;
+	case '2week':
+		intervalMS = 2*604800000;
+		break;
+	case 'month':
+		//Cut in here months aren't all the same length so same logic won't hold
+		var localDate = new Date(startDate.getFullYear(),startDate.getMonth()+1);
+		while(localDate <= endDate)
+		{
+			dates.push(new Date(localDate.getTime()));
+			localDate.setMonth(localDate.getMonth() + 1);
+		}
+		return dates;
+		break;
+	case 'quarter':
+		var localDate = new Date(startDate.getFullYear(),startDate.getMonth()+1);
+		while(localDate <= endDate)
+		{
+			dates.push(new Date(localDate.getTime()));
+			localDate.setMonth(localDate.getMonth() + 3);
+		}
+		return dates;
+		break;
+	case 'year':
+		intervalMS = 31556925960;
+		break;
+		default:
+		intervalMS = 1;
+	}
+	
+	var msDifference = Math.abs(endDate.getTime() - startDate.getTime());
+	var numberOfIntervals = Math.floor(msDifference/intervalMS);
+	
+	for(i=1;i<=numberOfIntervals;i++)
+	{
+		//The additional 3 600 000 is to correct for rounding and make sure the date is in the period requird.
+		dates.push(new Date(startDate.getTime() + (intervalMS * i) +3600000) );
+	}
+	return dates;
+}
+
+function filterDate()
+{
+	_addLog('Applying date filter.');
+	if (chartType == 'timeline')
+	{
+		var start = getCurrentFrom();
+		var end =  getCurrentTo();
+		if(chart)
+		{
+			chart.setVisibleChartRange(start,end);
+		}
+	}
+}
+
+function fillDates(table,unit)
+{
+	_addLog('Identifying dates between given data.');
+	var localTable = table.clone();
+	var extents = getDateExtents(localTable);
+	var fullDates = getIntervals(extents.earliest,extents.latest,unit);
+	for(i=0;i<fullDates.length;i++)
+	{
+		index = localTable.addRow(); 
+		localTable.setValue(index, 0, fullDates[i]);
+	}
+	return localTable;
+}
+
+function formatData(table,unit)
+{
+	for(i=0;i<table.getNumberOfRows();i++)
+	{
+		table.setFormattedValue(i, 0, getFormattedDate(table.getValue(i, 0),unit) );
+	}
+	return table;
+}
+
+function isMultiyear(table)
+{
+	var extents = getDateExtents(table);
+	if(extents.earliest.getFullYear() == extents.latest.getFullYear())
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function getFormattedDate(date,unit,multiyear)
+{
+	switch(unit)
+	{
+	case 'day':
+		return date.toDateString();
+	case 'week':
+		if (multiyear == false)
+		{
+			return 'Week '+date.getWeek();
+		}
+		else
+		{
+			return 'Week '+date.getWeek()+' of '+date.getFullYear();
+		}
+	case '2week':
+		if (multiyear == false)
+		{
+			return 'Week '+date.getDoubleWeek();
+		}
+		else
+		{
+			return '14 Day period '+date.getDoubleWeek()+' of '+date.getFullYear();
+		}
+	case 'month':
+		var month;
+		switch(date.getMonth())
+		{
+		case 0:
+			month = 'January';
+			break;
+		case 1:
+			month = 'February';
+			break;
+		case 2:
+			month = 'March';
+			break;
+		case 3:
+			month = 'April';
+			break;
+		case 4:
+			month = 'May';
+			break;
+		case 5:
+			month = 'June';
+			break;
+		case 6:
+			month = 'July';
+			break;
+		case 7:
+			month = 'August';
+			break;
+		case 8:
+			month = 'September';
+			break;
+		case 9:
+			month = 'October';
+			break;
+		case 10:
+			month = 'November';
+			break;
+		case 11:
+			month = 'December';
+			break;
+		}
+		if (multiyear == false)
+		{
+			return month;
+		}
+		else
+		{
+			return month+' '+date.getFullYear();
+		}
+	case 'quarter':
+		var quarter;
+		switch(date.getMonth())
+		{
+		case 0:
+			quarter = 'January - March';
+			break;
+		case 1:
+			quarter = 'January - March';
+			break;
+		case 2:
+			quarter = 'January - March';
+			break;
+		case 3:
+			quarter = 'April - June';
+			break;
+		case 4:
+			quarter = 'April - June';
+			break;
+		case 5:
+			quarter = 'April - June';
+			break;
+		case 6:
+			quarter = 'July - September';
+			break;
+		case 7:
+			quarter = 'July - September';
+			break;
+		case 8:
+			quarter = 'July - September';
+			break;
+		case 9:
+			quarter = 'October - December';
+			break;
+		case 10:
+			quarter = 'October - December';
+			break;
+		case 11:
+			quarter = 'October - December';
+			break;
+		}
+		if (multiyear == false)
+		{
+			return quarter;
+		}
+		else
+		{
+			return quarter+' of '+date.getFullYear();
+		}
+	case 'year':
+		return date.getFullYear();
+		default:
+			return;
+	}
+}
+
+/*
+ * Grouping functions:
+ */
+Grouping = new Object();
+/*
+ * Below are date grouping functions, the idea behind this is pretty simple; the google grouping works
+ by comparing JS date objects, we will simply return new date objects with unwatned resolution ommited.
+
+ i.e. the higher the resolution the more arguments to new Date will be passed and the less aggregation will occur
+ */
+Grouping.none = function(date)
+{
+	return date;
+}
+
+Grouping.day = function(date)
+{
+	return new Date(date.getFullYear(),date.getMonth(),date.getDate());
+}
+
+Grouping.week = function(date)
+{
+	//Round to nearest unix week (604800000 ms)
+	var weekTimestamp = (Math.round(date.getTime() / 604800000)) * 604800000;
+	return new Date(weekTimestamp);
+}
+
+Grouping.twoWeek = function(date)
+{
+	//Round to nearest unix week (1209600000 ms)
+	var twoWeekTimestamp = (Math.round(date.getTime() / 1209600000)) * 1209600000;
+	return new Date(twoWeekTimestamp);
+}
+
+Grouping.month = function(date)
+{
+	return new Date(date.getFullYear(),date.getMonth());
+}
+
+Grouping.quarter = function(date)
+{
+	var quarter = Math.floor(date.getMonth()/3) +1;
+	//four possibilities of three month groupings, place date at end 3:March, 6:June, 9:September, 12 December
+	//Note if we have quarter 1, 2, 3, 4 we merely need to multiply by 3 (no we couldn't leave it as it was need rounding)
+	return new Date(date.getFullYear(),(3*quarter)-1);
+}
+
+Grouping.year = function(date)
+{
+	return new Date(date.getFullYear(),0);
+}
+
+/* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ * :::::::::::::::: Controls and List ::::::::::::::::::::
+ * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ */
+function addSku(id)
+{
+	//This function retreives information about a sku and decides how it needs to be abstracted.
+	jQuery.ajax(
+		{
+			url: "<?php echo $this->getUrl('*/*/getSkuData'); ?>",
+			type:"GET",
+			dataType:"json",
+			data:
+			{
+				'id': id
+			},
+			success: function (product)
+			{
+				switch(product.type)
+				{
+					case 'simple':
+						sku = new productSale(product.sku,product.name,product.type);
+						//Add to data table
+						sku.addData();
+					break;
+					case 'child':
+						sku = new productSale(product.sku,product.name,product.type);
+						//Add to data table
+						sku.addData();
+					break;
+					case 'parent':
+						//Abstract all of the children
+						var children = new Array();
+						for (i=0;i<product.children.length;i++)
+						{
+							children.push(new productSale(product.children[i].sku,product.children[i].name,product.children[i].type));
+						}
+						//Abstract the parent
+						sku = new parentProduct(product.sku,product.name,children);
+						//Add to data table
+						sku.addSum();
+					break;
+					default:
+					break;
+				}
+				jQuery('#sku-container').prepend('<li onClick="selectSku(\''+product.sku+'\')">'+product.sku+'</li>');
+			}
+		});
+}
+
+function removeSku(sku)
+{
+	
+}
+
+function selectSku(sku)
+{
+	alert(sku);
+}
+
+/* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ * ::::::::::::::::::::: Abstraction :::::::::::::::::::::
+ * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ */
+function productSale(sku,name,type)
+{
+	this.sku = sku;
+	this.name = name;
+	this.type = type;
+	if(this.type != 'child')
+	{
+		products[sku] = this;
+	}
+	this.retrieveData();
+}
+
+function parentProduct(sku,name,children)
+{
+	this.sku = sku;
+	this.name = name;
+	this.children = children;
+	products[sku] = this;
+	for(i=0;i<this.children.length;i++)
+	{
+		this.children[i].parent = products[sku];
+	}
+}
+
+productSale.prototype.retrieveData = function()
+{
+	_addLog('Sending request to server for '+this.sku+' data.');
+	/*
+	This function is only applicable to simple products, it populates the objects internal data and should
+	be called on instantiation. It actually returns the ajax request it sends. It is synchronous to save a whole
+	lot of needless complexity (unlike other scenarios theres not much the user can do without this data)
+	*/
+	var by = getCurrentGroupby();
+	var sku = this.sku;
+	var product = this;
+	return jQuery.ajax
+	({
+		url: "<?php echo $this->getUrl('*/*/getData'); ?>",
+		type:"POST",
+		dataType:"json",
+		async:false,
+		data:
+		{
+			'id': sku,
+			//Uncomment these to add the date range to the sql as opposed to local
+			//'from':getCurrentFrom(),
+			//'to':getCurrentTo(),
+			'form_key':"<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"
+		},
+		success: function (response)
+		{
+			//products[sku] refers to 'this' object but since this is a call back 'this' refers to the ajax
+			//request so we must use said path.
+			product.data = response;
+			if(response.length == 0)
+			{
+				_addLog(sku+' has no sales for the given parameters');
+			}
+			else
+			{
+				_addLog('The server has returned some sales data for '+sku);
+			}
+		}
+	});
+	return;
+}
+
+productSale.prototype.addData = function()
+{
+	/*
+	The essential thing to know about the data table is that for the purposes of this page we want
+	a two dimensional graph, where the first column or the 'key' is the time period.
+
+	Each product has it's own copy of a datatable which is joined, filtered, and grouped just in time into
+	one giant table. This function is responsibe for making sure the local datatable exists and finally to pass it
+	to the prepare data function which will add it.
+	*/
+	var sku = this.sku;
+	if(this.hasOwnProperty('data') == false)
+	{
+		_addLog(this.sku+' has no data, attempting to retrieve it from server.');
+		//This sku has no sales data yet, it should have been added on instanciation but let's not break everything because it wasn't in some case
+		//Since this is a sync ajax function you will not need to call this method again on success.
+		this.retrieveData();
+	}
+	if(this.hasOwnProperty('tableData') == false)
+	{
+		_addLog('Formating '+this.sku+' data into google datatable.');
+		//This sku does not have generated table data, generate it now and 'save' it to the object
+		this.tableData = new google.visualization.DataTable();
+		this.tableData.addColumn('date','Period','period');
+		this.tableData.addColumn('number',this.sku,this.sku);
+		for (i=0;i<this.data.length;i++)
+		{
+			this.tableData.addRow([new Date(this.data[i].timestamp),this.data[i].sales]);
+		}
+	}
+	
+	//If you got this far you have both the data you need and it's google form, now you need to group it
+	//properly and merge it with the global data
+	prepareDataTable(new Array(this.tableData));
+}
+
+productSale.prototype.removeData = function()
+{
+	
+}
+
+parentProduct.prototype.addSum = function()
+{
+	//This function (and the other parents) will assume the children have data already; doing it themselves won't work so well.
+	/*
+	Simply put the sum is as easy as adding all the points to each ohter. As normal group by and limits will be done in the just in time prepareDataTable.
+	*/
+	if(this.hasOwnProperty('tableData') == false)
+	{
+		_addLog('Formating '+this.sku+' data into google datatable.');
+		//This sku does not have generated table data, generate it now and 'save' it to the object
+		this.tableData = new google.visualization.DataTable();
+		this.tableData.addColumn('date','Period','period');
+		this.tableData.addColumn('number',this.sku,this.sku);
+		for (i=0;i<this.children.length;i++)
+		{
+			for (k=0;k<this.children[i].data.length;k++)
+			{
+				this.tableData.addRow([new Date(this.children[i].data[k].timestamp),this.children[i].data[k].sales]);
+			}
+		}
+	}
+	prepareDataTable(new Array(this.tableData));
+}
+
+parentProduct.prototype.removeSum = function()
+{
+	
+}
+
+parentProduct.prototype.addChildren = function()
+{
+	
+}
+
+parentProduct.prototype.removeChildren = function()
+{
+	
+}
+
+parentProduct.prototype.addMedian = function()
+{
+	
+}
+
+parentProduct.prototype.removeMedian = function()
+{
+	
+}
+/* :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ * :::::::::::::::::::::::: Utility ::::::::::::::::::::::
+ * :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ */
+function getCurrentGroupby()
+{
+	return {'group':jQuery('#group-select option:selected').val(),'label':jQuery('#group-select option:selected').text()};
+}
+
+function getCurrentFrom()
+{
+	return jQuery('#from').datepicker("getDate");
+}
+
+function getCurrentTo()
+{
+	return jQuery('#to').datepicker("getDate");
+}
+
+function setCurrentFrom(date)
+{
+	jQuery('#from').datepicker( "setDate" , date )
+}
+
+function setCurrentTo(date)
+{
+	jQuery('#to').datepicker( "setDate" , date )
+}
+
+function updatejQueryDates(event)
+{
+	if(chartType == 'timeline')
+	{
+		var range = chart.getVisibleChartRange();
+		if (range.end)
+		{
+			setCurrentTo(range.end);
+		}
+		if (range.start)
+		{
+			setCurrentFrom(range.start);
+		}
+	}
+}
+
+function _addLog(entry)
+{
+	log.push(entry);
+	jQuery('#log').append('<li>'+entry+'</li>');
+}
+
+Date.prototype.getWeek = function() {
+	var onejan = new Date(this.getFullYear(),0,1);
+	return Math.ceil((((this - onejan) / 86400000) + onejan.getDay()+1)/7);
+	} 
+
+Date.prototype.getDoubleWeek = function() {
+	var onejan = new Date(this.getFullYear(),0,1);
+	return Math.ceil((((this - onejan) / 86400000) + onejan.getDay()+1)/14);
+	} 
+</script>
+<style type="text/css">
+	#chart
+	{
+		float:left;
+		width:1200;
+		height:500px;
+		background:blue;
+	}
+	#control
+	{
+		float:left;
+		width:1000;
+		height:300px;
+		background:red;
+	}
+	#list
+	{
+		height:500px;
+		margin-left:1200;
+		background:yellow;
+	}
+	#secondary
+	{
+		height:300px;
+		margin-left:1000;
+		background:grey;
+	}
+</style>
+
+<!-- Chart -->
+<div id="chart" >
+</div>
+
+<!-- Skus -->
+<div id="list" >
+	<ul id="sku-container">
+		<li><input type="text" id="newSku" /></li>
+	</ul>
+</div>
+
+<!-- Control -->
+<div id="control">
+	<select id="group-select" onChange="analysisUpdate('grouping')">
+		<option value="none">Exact</option>
+		<option value="day">Day</option>
+		<option value="week">Week</option>
+		<option value="2week">Two Weeks</option>
+		<option SELECTED value="month">Month</option>
+		<option value="quarter">Quarter</option>
+		<option value="year">Year</option>
+		<option value="lifetime">Lifetime</option>
+	</select>
+	<select id="chart-type" onChange="analysisUpdate('chart')">
+		<option value="timeline">Timeline</option>
+		<option value="scatter">Scatter</option>
+	</select>
+	<div id="date-limits">
+		<label for="from">From</label>
+		<input type="text" id="from" name="from"/>
+		<label for="to">to</label>
+		<input type="text" id="to" name="to" />
+	</div>
+</div>
+
+<!-- Secondary -->
+<div id="secondary">
+	Secondary
+	<ol id="log">
+	</ol>
+</div>
+
+<!-- Table -->
+<div id="table_div">
+</div>

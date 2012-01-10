@@ -1,0 +1,275 @@
+<?xml version="1.0"?>
+<!-- /** * @category VO * @package VO_Purchase * @author Trygve of Velo Orange 
+	* @license http://opensource.org/licenses/osl-3.0.php Open Software License 
+	(OSL 3.0) */ -->
+<config>
+	<modules>
+		<VO_Purchase>
+			<version>0.2.4</version>
+		</VO_Purchase>
+	</modules>
+
+	<admin>
+		<routers>
+			<purchase>
+				<use>admin</use>
+				<args>
+					<module>VO_Purchase</module>
+					<frontName>purchase</frontName>
+				</args>
+			</purchase>
+		</routers>
+	</admin>
+	<adminhtml>
+		<menu>
+			<purchase module="purchase">
+				<title>Purchase</title>
+				<sort_order>71</sort_order>
+				<children>
+					<orders module="purchase">
+						<title>Orders</title>
+						<sort_order>1</sort_order>
+						<action>purchase/order</action>
+					</orders>
+					<shipments module="purchase">
+						<title>Shipments</title>
+						<sort_order>2</sort_order>
+						<action>purchase/shipment</action>
+					</shipments>
+					<supplyneeds module="purchase">
+						<title>Supply Needs</title>
+						<sort_order>3</sort_order>
+						<action>purchase/supply</action>
+					</supplyneeds>
+					<suppliers module="purchase">
+						<title>Suppliers</title>
+						<sort_order>0</sort_order>
+						<action>purchase/supplier</action>
+					</suppliers>
+					<pricing module="purchase">
+						<title>Pricing</title>
+						<sort_order>5</sort_order>
+						<children>
+							<change module="purchase">
+								<title>Make Changes</title>
+								<sort_order>0</sort_order>
+								<action>purchase/price/load</action>
+							</change>
+							<history module="purchase">
+								<title>History</title>
+								<sort_order>1</sort_order>
+								<action>purchase/price/index</action>
+							</history>
+							<graph module="purchase">
+								<title>Graphs</title>
+								<sort_order>2</sort_order>
+								<action>purchase/price/graph</action>
+							</graph>
+							<list module="purchase">
+								<title>List</title>
+								<sort_order>3</sort_order>
+								<action>purchase/price/list</action>
+							</list>
+						</children>
+					</pricing>
+					<hts module="purchase">
+						<title>HTS Table</title>
+						<sort_order>5</sort_order>
+						<action>purchase/hts</action>
+					</hts>
+					<test module="purchase">
+						<title>Test</title>
+						<sort_order>4</sort_order>
+						<action>purchase/order/test</action>
+					</test>
+				</children>
+			</purchase>
+			<catalog translate="title" module="purchase">
+				<children>
+					<stock module="purchase">
+						<title>Stock Movement</title>
+						<sort_order>1000</sort_order>
+						<action>purchase/stock</action>
+					</stock>
+				</children>
+			</catalog>
+		</menu>
+
+		<layout>
+			<updates>
+				<purchase>
+					<file>purchase.xml</file>
+				</purchase>
+			</updates>
+		</layout>
+	</adminhtml>
+
+	<global>
+		<models>
+			<purchase>
+				<class>VO_Purchase_Model</class>
+				<resourceModel>purchase_mysql4</resourceModel>
+			</purchase>
+			<purchase_mysql4>
+				<class>VO_Purchase_Model_Mysql4</class>
+				<entities>
+					<order>
+						<table>purchase_orders</table>
+					</order>
+					<shipment>
+						<table>purchase_shipments</table>
+					</shipment>
+					<shipment_product>
+						<table>purchase_shipment_products</table>
+					</shipment_product>
+					<order_product>
+						<table>purchase_order_products</table>
+					</order_product>
+					<order_product_extended>
+						<table>purchase_order_extended</table>
+					</order_product_extended>
+					<productadditional>
+						<table>purchase_product_additional</table>
+					</productadditional>
+					<supplier_product>
+						<table>purchase_supplier_products</table>
+					</supplier_product>
+					<supplier_product_extended>
+						<table>purchase_default_extended</table>
+					</supplier_product_extended>
+					<supplier>
+						<table>purchase_supplier</table>
+					</supplier>
+					<hts>
+						<table>hts</table>
+					</hts>
+					<stockmovement>
+						<table>purchase_stock_movements</table>
+					</stockmovement>
+					<supplyneed>
+						<table>purchase_supply_needs</table>
+					</supplyneed>
+					<price>
+						<table>purchase_prices</table>
+					</price>
+					<price_plan>
+						<table>purchase_price_plan</table>
+					</price_plan>
+					<price_list>
+						<table>purchase_price_list</table>
+					</price_list>
+					<price_list_price>
+						<table>purchase_price_list_price</table>
+					</price_list_price>
+					<price_list_price>
+						<table>purchase_price_list_price</table>
+					</price_list_price>
+				</entities>
+			</purchase_mysql4>
+		</models>
+
+		<events>
+			<sales_order_place_after>
+				<observers>
+					<vo_purchase_order>
+						<type>singleton</type>
+						<class>VO_Purchase_Model_Observer</class>
+						<method>updateStockMovementFromOrder</method>
+					</vo_purchase_order>
+				</observers>
+			</sales_order_place_after>
+			<sales_order_creditmemo_save_after>
+				<observers>
+					<vo_purchase_return>
+						<type>singleton</type>
+						<class>VO_Purchase_Model_Observer</class>
+						<method>updateStockMovementFromCreditMemo</method>
+					</vo_purchase_return>
+				</observers>
+			</sales_order_creditmemo_save_after>
+			<catalog_product_prepare_save>
+				<observers>
+					<vo_purchase_admin>
+						<type>singleton</type>
+						<class>VO_Purchase_Model_Observer</class>
+						<method>updateStockMovementFromAdmin</method>
+					</vo_purchase_admin>
+				</observers>
+			</catalog_product_prepare_save>
+		</events>
+
+		<resources>
+			<purchase_setup>
+				<setup>
+					<module>VO_Purchase</module>
+				</setup>
+				<connection>
+					<use>core_setup</use>
+				</connection>
+			</purchase_setup>
+			<purchase_write>
+				<connection>
+					<use>core_write</use>
+				</connection>
+			</purchase_write>
+			<purchase_read>
+				<connection>
+					<use>core_read</use>
+				</connection>
+			</purchase_read>
+		</resources>
+
+		<blocks>
+			<purchase>
+				<class>VO_Purchase_Block</class>
+			</purchase>
+		</blocks>
+
+		<helpers>
+			<purchase>
+				<class>VO_Purchase_Helper</class>
+			</purchase>
+		</helpers>
+	</global>
+
+	<default>
+		<orders>
+			<interface>
+				<pagination>10</pagination>
+			</interface>
+			<shipping>
+				<order_carrier>FedEx,Spadaro,UPS</order_carrier>
+				<air>2</air>
+				<land>30</land>
+				<sea>180</sea>
+			</shipping>
+			<deletion>
+				<absolute>1</absolute>
+			</deletion>
+			<restocking>
+				<instock>1</instock>
+			</restocking>
+		</orders>
+		<pricing>
+			<margins>
+				<retail_above_lc>300</retail_above_lc>
+				<oem_below_distributor>10</oem_below_distributor>
+				<wholesale_below_retail>50</wholesale_below_retail>
+				<distributor_below_wholesale>30</distributor_below_wholesale>
+				<divergence>10</divergence>
+				<freight_margin>6</freight_margin>
+			</margins>
+		</pricing>
+		<terms>
+			<terms>
+				<manufacturer>Manufacturer</manufacturer>
+				<supplier>Supplier</supplier>
+				<shipdate>Ship Date</shipdate>
+				<receivedate>Receive Date</receivedate>
+				<leadtime>Lead Time</leadtime>
+				<firstcost>First Cost</firstcost>
+				<landedcost>Landed Cost</landedcost>
+			</terms>
+		</terms>
+	</default>
+</config>

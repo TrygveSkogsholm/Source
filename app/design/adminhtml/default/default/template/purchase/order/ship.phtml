@@ -1,0 +1,157 @@
+<?php
+$order = $this->getOrder();
+?>
+
+<a href="images/high_tatras.jpg" title="View larger image"
+	class="ui-icon ui-icon-zoomin">View larger</a>
+<a href="link/to/trash/script/when/we/have/js/off"
+	title="Delete this image" class="ui-icon ui-icon-trash">Delete image</a>
+
+<style type="text/css">
+</style>
+<style>
+.items .ui-selecting 
+{
+	background: #ED6502;
+	color: white;
+}
+
+.items .ui-selected 
+{
+	background: black;
+	color: white;
+}
+.items .ui-selecting input
+{
+	color: white;
+}
+.items .ui-selected input
+{
+	color: white;
+}
+</style>
+
+<style>
+.ship-item
+{
+	width:160px;
+	height:66px;
+	border: 1px solid black;
+	margin:3px;
+	float:left;
+}
+.ship-item .item-handle
+{
+	height:14px;
+	font-size:13px;
+	border-bottom: 1px solid black;
+	color:white;
+	background:#6F8992;
+	font-weight:bold;
+	padding:1px;
+	vertical-align:center;
+}
+.ship-item .left
+{
+	width:99px;
+	height:50px;
+	border-right: 1px solid black;
+}
+.ship-item .ship-sku
+{
+	width:150px;
+}
+.ship-item .left .ship-name
+{
+	height:0%;
+	font-size:0.6em;
+	padding-left:1px;
+}
+.ship-item .left input
+{
+	height:100%;
+	width:100%;
+	border:none;
+	background:transparent;
+	font-size:40px;
+}
+.ship-item .right 
+{
+	width:60px;
+	height:50px;
+}
+.ship-item .right .ship-image
+{
+
+}
+</style>
+<?php $start = microtime(true); ?>
+<div id="pending">
+	<ol class="items">
+	<?php
+	foreach($order->getItems() as $item)
+	{
+		if ($item->getQtyInShipments() < $item->getItemQty())
+		{
+			$block = $this->getLayout()->createBlock('purchase/orders_edit_tab_shiptab_item');
+			$block->setItem($item);
+			$block->location = 'pending';
+			echo $block->toHtml();
+		}
+	}
+	?>
+	</ol>
+</div>
+
+<div id="shipments">
+<?php
+foreach ($order->getAllShipments() as $shipment)
+{
+	$block = $this->getLayout()->createBlock('purchase/orders_edit_tab_shiptab_shipment');
+	$block->setShipment($shipment);
+	echo $block->toHtml();
+}
+
+?>
+</div>
+<?php $end = microtime(true); ?>
+<?php echo $end-$start; ?>
+
+<script type="text/javascript">
+
+/*
+ * Create two instances of an item when someone changes the qty
+ * the types of IDs are:
+ * pending_ITEMID 
+ * SHIPMENTID_ITEMID
+ *
+ * Changes are made real time so shipments must exist, there are two stages, send the request
+ * if the request goes through information is returned confirming, otherwise the exception is.
+ */
+function split()
+{
+	
+}
+
+jQuery(".items").selectable({ filter: '.ship-item'});
+jQuery(".order-item").each(
+function()
+{
+	jQuery(this).draggable();
+}
+)
+
+//Ship Tab JS
+jQuery("#tabs").tabs();
+
+jQuery( "#selectable" ).selectable({
+	stop: function() {
+		var result = jQuery( "#easyAddJson" ).empty();
+		jQuery( ".ui-selected", this ).each(function() {
+			var index = jQuery( "#selectable li" ).index( this );
+			result.val( " #" + ( index + 1 ) );
+		});
+	}
+});
+
+</script>
